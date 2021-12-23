@@ -6,10 +6,10 @@ import * as compression from 'compression';
 import * as csurf from 'csurf';
 
 NestFactory.create<NestExpressApplication>(AppModule).then(function (app) {
-  app.listen(80);
   app.getHttpAdapter().useStaticAssets(join(process.cwd(), 'client/public'), {
     prefix: '/assets/'
   });
+  app.getHttpAdapter().setBaseViewsDir(join(process.cwd(), 'client/public/views'));
   app.disable('x-powered-by');
   app.setViewEngine('html');
   app.useGlobalFilters(new NotFoundExceptionFilter());
@@ -21,4 +21,5 @@ NestFactory.create<NestExpressApplication>(AppModule).then(function (app) {
   });
   app.use(compression);
   app.use(csurf());
+  app.listen(80);
 });

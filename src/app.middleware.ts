@@ -5,7 +5,7 @@ import { join } from 'path';
 @Injectable()
 export class AppMiddleware implements NestMiddleware {
     use(req: Request, res: Response, next: NextFunction) {
-        res.sendFile(join(process.cwd(), 'client/public/index.html'))
+        res.sendFile(join(process.cwd(), 'client/public/views/index.html'))
         next();
     }
 }

@@ -7,6 +7,8 @@ import { AppMiddleware } from './app.middleware';
 import { join } from 'path';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { AuthService } from './auth/auth.service';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -14,10 +16,11 @@ import { ThrottlerModule } from '@nestjs/throttler';
     ThrottlerModule.forRoot({
       ttl: 60,
       limit: 10,
-    })
+    }),
+    AuthModule
   ],
   controllers: [AppController, ApiController],
-  providers: [AppService, ApiService],
+  providers: [AppService, ApiService, AuthService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
