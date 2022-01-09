@@ -2,17 +2,18 @@ import { ArgumentsHost, Catch, ExceptionFilter, HttpException, MiddlewareConsume
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ApiController } from './api/api.controller';
-import { ApiService } from './api/app.service';
+import { ApiService } from './api/api.service';
 import { AppMiddleware } from './app.middleware';
 import { join } from 'path';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthService } from './auth/auth.service';
 import { AuthModule } from './auth/auth.module';
+import { JwtService } from '@nestjs/jwt';
 
 @Module({
   imports: [
-    MongooseModule.forRoot('mongodb+srv://root:rStAlyBZsgn80aLx@cluster0.ivz8y.mongodb.net/Cluster0?retryWrites=true&w=majority'),
+    //MongooseModule.forRoot('mongodb+srv://root:rStAlyBZsgn80aLx@cluster0.ivz8y.mongodb.net/Cluster0?retryWrites=true&w=majority'),
     ThrottlerModule.forRoot({
       ttl: 60,
       limit: 10,
@@ -36,6 +37,6 @@ export class NotFoundExceptionFilter implements ExceptionFilter {
   catch(exception: HttpException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse();
-    response.sendFile(join(process.cwd(), 'client/public/index.html'));
+    response.sendFile(join(process.cwd(), 'client/public/views/error.html'));
   }
 }
