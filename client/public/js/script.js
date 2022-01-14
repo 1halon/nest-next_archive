@@ -1,1 +1,1 @@
-fetch("/login",{method:"POST",body:JSON.stringify({_timestamp:Date.now(),email:"test",password:"asd"})});
+fetch("/api/login",{method:"POST",body:JSON.stringify({email:"halilkochan48@gmail.com"}), headers: {"Content-Type": "application/json"}});

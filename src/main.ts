@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { AppModule, NotFoundExceptionFilter } from './app.module';
+import { SMTPServer } from "smtp-server";
 
 NestFactory.create<NestExpressApplication>(AppModule).then(function (app) {
   app.getHttpAdapter().useStaticAssets(join(process.cwd(), 'client/public'), { prefix: '/assets/' });
@@ -11,7 +12,11 @@ NestFactory.create<NestExpressApplication>(AppModule).then(function (app) {
     credentials: true,
     methods: "GET,PUT,POST,DELETE,UPDATE,OPTIONS",
     origin: true
-  }); 
+  });
   app.useGlobalFilters(new NotFoundExceptionFilter());
   app.listen(80);
 });
+
+const stmps = new SMTPServer({
+  secure: false
+})
