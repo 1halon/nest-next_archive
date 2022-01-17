@@ -1,53 +1,59 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { genSaltSync, hashSync } from 'bcrypt';
 import { randomUUID } from 'crypto';
-import { generate } from "generate-password"
 import { Model, Schema } from 'mongoose';
 const str = Schema.Types.String as any;
 str.checkRequired(v => v != null);
 
 export interface User {
-    display_name: string,
-    id: number,
-    email: string,
-    pass: string,
-    username: string
+    createdAt: number;
+    display_name: string;
+    id: string;
+    email: string;
+    login_token: string;
+    username: string;
+}
+
+export interface CreationDto {
+    display_name: string;
+    email: string;
+    username: string;
 }
 
 export const UserSchema = new Schema({
+    createdAt: { type: Number, required: true, immutable: true },
     display_name: { type: String, required: true },
-    id: { type: Number, required: true },
-    email: { type: String, required: true },
-    pass: { type: String, required: true },
-    username: { type: String, required: true },
+    id: { type: String, required: true, immutable: true, unique: true },
+    email: { type: String, required: true, immutable: true, lowercase: true, trim: true },
+    login_token: { type: String, required: true },
+    username: { type: String, required: true, immutable: true, lowercase: true, trim: true, unique: true },
 });
 
 @Injectable()
 export class UserService {
     constructor(
-        @InjectModel('User') private readonly userModel: Model<User>
+        @InjectModel('User') public readonly userModel: Model<User>
     ) { }
-    private readonly salt = genSaltSync(8);
+    private readonly mail_regex = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
-    async createUser(user: { display_name: string, email: string, username: string }) {
-        const { display_name, email, username } = user;
-        const exs_user = await this.findUserByUsername(username).catch(() => null);
-        if (user) throw new Error('A user exists with this username.');
-        const model = { display_name, email, id: randomUUID(), pass: '', username };
-        const creation = await (new this.userModel(model).save());
-        return model;
-    }
-
-    async createTempPassword(email?: string) {
-        const password = generate({ length: 32, lowercase: true, numbers: true, strict: true, symbols: false, uppercase: true }),
-            hash = hashSync(password, this.salt);
-        if (email) {
-            this.userModel.findOneAndUpdate({ email: email }, { $set: { pass: password } }, {}, function (err, user) {
-                if (err) throw err;
-            });
-        }
-        return { password, hash };
+    async createUser(creation_dto: CreationDto) {
+        const { display_name, email, username } = creation_dto;
+        if (typeof display_name !== 'string' ||
+            display_name === '' ||
+            display_name.length < 3)
+            throw new Error('INVALID_DISPLAYNAME');
+        if (typeof email !== 'string' ||
+            email === '' ||
+            !email.toLowerCase().match(this.mail_regex) ||
+            (await this.userModel.find({ email: email })).length >= 3)
+            throw new Error('INVALID_EMAIL');
+        if (typeof username !== 'string' ||
+            username === '' ||
+            username.length < 3)
+            throw new Error('INVALID_USERNAME');
+        const ex_user = await this.findUserByUsername(username).catch(() => null);
+        if (ex_user) throw new Error('USERNAME_EXISTS');
+        return { createdAt: Date.now(), display_name, email, id: randomUUID(), username } as User;
     }
 
     async findUser(type: 'email', email: string): Promise<User>;

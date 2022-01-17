@@ -15,6 +15,7 @@ import { MailerModule } from "@nestjs-modules/mailer"
 import { EjsAdapter } from '@nestjs-modules/mailer/dist/adapters/ejs.adapter';
 import { UserSchema, UserService } from './user/user.service';
 import { UserModule } from './user/user.module';
+import { TemplateService } from './template/template.service';
 
 
 @Module({
@@ -52,7 +53,7 @@ import { UserModule } from './user/user.module';
     UserModule
   ],
   controllers: [AppController, ApiController],
-  providers: [AppService, ApiService, AuthService, UserService],
+  providers: [AppService, ApiService, AuthService, UserService, TemplateService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
@@ -66,8 +67,7 @@ export class AppModule implements NestModule {
 @Catch(NotFoundException)
 export class NotFoundExceptionFilter implements ExceptionFilter {
   catch(exception: HttpException, host: ArgumentsHost) {
-    const ctx = host.switchToHttp();
-    const response = ctx.getResponse();
+    const ctx = host.switchToHttp(), response = ctx.getResponse();
     response.sendFile(join(process.cwd(), 'client/public/views/error.html'));
   }
 }
