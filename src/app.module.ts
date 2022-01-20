@@ -1,8 +1,8 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, MiddlewareConsumer, Module, NestModule, NotFoundException, RequestMethod } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ApiController } from './api/api.controller';
-import { ApiService } from './api/api.service';
+import { ApiController } from './api/v1/api.controller';
+import { ApiService } from './api/v1/api.service';
 import { AppMiddleware } from './app.middleware';
 import { join } from 'path';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -16,7 +16,6 @@ import { EjsAdapter } from '@nestjs-modules/mailer/dist/adapters/ejs.adapter';
 import { UserSchema, UserService } from './user/user.service';
 import { UserModule } from './user/user.module';
 import { TemplateService } from './template/template.service';
-
 
 @Module({
   imports: [
@@ -68,6 +67,6 @@ export class AppModule implements NestModule {
 export class NotFoundExceptionFilter implements ExceptionFilter {
   catch(exception: HttpException, host: ArgumentsHost) {
     const ctx = host.switchToHttp(), response = ctx.getResponse();
-    response.sendFile(join(process.cwd(), 'client/public/views/error.html'));
+    response.sendFile(join(process.cwd(), 'client/public/views/404.html'));
   }
 }

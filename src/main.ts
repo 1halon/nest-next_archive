@@ -8,9 +8,9 @@ NestFactory.create<NestExpressApplication>(AppModule).then(function (app) {
   app.getHttpAdapter().useStaticAssets(join(process.cwd(), 'client/public'), { prefix: '/assets' });
   app.disable('x-powered-by');
   app.enableCors({
-    allowedHeaders: 'Accept, Authorization, Content-Type',
+    allowedHeaders: 'Accept,Authorization,Content-Type',
     credentials: true,
-    methods: "GET,PUT,POST,DELETE,UPDATE,OPTIONS",
+    methods: 'GET,PUT,POST,DELETE,UPDATE,OPTIONS',
     origin: true
   });
   app.use(helmet());

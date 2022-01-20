@@ -6,7 +6,7 @@ import { TemplateService } from 'src/template/template.service';
 import { CreationDto, User, UserService } from 'src/user/user.service';
 import { AuthService, ConfirmDto, LoginDto } from './auth.service';
 
-@Controller('api/auth')
+@Controller('api/v*/auth')
 export class AuthController {
     constructor(
         private readonly authService: AuthService,
@@ -32,18 +32,14 @@ export class AuthController {
                         try {
                             new this.userService.userModel(userModel).save()
                                 .then(() => console.log('LOGIN_TOKEN:', pass))
-                                /*this.mailerService.sendMail({
-                                    html: this.mail_templates['pass']({ id: userModel.id, pass: pass }),
-                                    subject: 'Your Login Token',
-                                    to: userModel.email
-                                }).catch(() => { throw new HttpException('Bad Request', 400) }))*/
                                 .catch(() => { throw new HttpException('Bad Request', 400); });
                         } catch (error) { throw error; }
-                    } else if (request.type === 'LOGIN') {
-                        return {
-                            access_token: this.jwtService.sign({ pass, username: request.username }, { secret: process.env.ACCESS_SECRET })
-                        }
-                    } else throw new HttpException('Method Not Allowed', 405);
+                    } else if (request.type === 'LOGIN') return {
+                        access_token: this.jwtService.sign({
+                            id: request.id, login_token: request.args[0], username: request.username
+                        }, { secret: process.env.ACCESS_SECRET })
+                    }
+                    else throw new HttpException('Method Not Allowed', 405);
                 } else throw new HttpException('INVALID_PASS', 400);
             else throw new HttpException('CONFIRMATION_EXPIRED', 400);
         else throw new HttpException('Not Found', 404);
@@ -63,7 +59,7 @@ export class AuthController {
         const user = await this.userService.userModel.findOne({ email, username }).catch(() => null) as User;
         if (user)
             if (compareSync(login_token, user.login_token)) {
-                this.authService.sendRequest('LOGIN', username, this.mail_templates['pass'], email);
+                this.authService.sendRequest('LOGIN', username, this.mail_templates['pass'], email, [login_token]);
             } else throw new HttpException('Bad Request', 400);
         else throw new HttpException('Bad Request', 400);
     }
