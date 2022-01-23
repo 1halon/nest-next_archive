@@ -28,7 +28,7 @@ export type RequestTypes = 'CREATE' | 'LOGIN';
 export class AuthServiceV1 {
     constructor(
         private readonly mailerService: MailerService
-    ) { }
+    ) { };
     public readonly salt = process.env.HASH_SALT;
     public readonly pending_requests = Array<PendingRequest>();
 
@@ -36,11 +36,11 @@ export class AuthServiceV1 {
         const RequestTypes = this.pending_requests.findIndex(request => request.type === type && request.username === username);
         if (type === 'CREATE' && RequestTypes !== -1) throw new Error('REQUEST_IN_PROGRESS');
         else if (type === 'LOGIN') this.pending_requests.splice(RequestTypes, 1);
-        const id = randomUUID(); this.pending_requests.push({
+        const id = randomUUID().split('-').join(''), request = {
             args: args ?? [],
             expiresAt: Date.now() + 5 * 60 * 1000,
             id,
-            self_destruct: setTimeout(function () { this.resolve(); }, 5 * 60 * 1000),
+            self_destruct: null,
             type,
             username,
             confirm: pass => compareSync(pass, hash),
@@ -48,20 +48,22 @@ export class AuthServiceV1 {
                 const index = this.pending_requests.findIndex(request => request.id === id); if (index === -1) return;
                 clearTimeout(this.pending_requests[index].self_destruct); this.pending_requests.splice(index, 1);
             },
-        } as PendingRequest);
+        } as PendingRequest; request.self_destruct = setTimeout(() => request.resolve(), 5 * 60 * 1000);
+        this.pending_requests.push(request);
         return id;
     }
 
     async sendRequest(type: RequestTypes, username: string, mail_template: TemplateFunction, email: string, args?: any[]) {
         const { hash, pass } = this.createTempPass(),
-            id = this.createRequest(type, username, hash, args);
+            id = this.createRequest(type, username, hash, args),
+            token = Buffer.from(`${id}-${pass}`).toString('base64');
         console.log('REQUEST | TYPE:', type, '| USERNAME:', username, '| TOKEN:', Buffer.from(`${id}-${pass}`).toString('base64'));
         /*await this.mailerService.sendMail({
             html: mail_template({ id, pass }),
             subject: 'Confirm Your Action',
             to: email
         }).catch(() => { throw new Error('Bad Request'); });*/
-        return id;
+        return token;
     }
 
     createTempPass(length?: number) {

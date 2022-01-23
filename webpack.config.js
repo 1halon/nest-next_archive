@@ -1,11 +1,13 @@
 const glob = require('glob'),
   path = require('path'),
+  webpack = require('webpack'),
   ImageMinimizerPlugin = require('image-minimizer-webpack-plugin'),
-  JsonMinimizerPlugin = require("json-minimizer-webpack-plugin"),
+  JsonMinimizerPlugin = require('json-minimizer-webpack-plugin'),
   TerserPlugin = require('terser-webpack-plugin'),
-  CssMinimizerPlugin = require("css-minimizer-webpack-plugin"),
+  CssMinimizerPlugin = require('css-minimizer-webpack-plugin'),
   CspHtmlWebpackPlugin = require('csp-html-webpack-plugin'),
   HtmlWebpackPlugin = require('html-webpack-plugin'),
+  MangleCssClassPlugin = require('mangle-css-class-webpack-plugin'),
   MiniCssExtractPlugin = require('mini-css-extract-plugin'),
   RemoveEmptyScriptsPlugin = require('webpack-remove-empty-scripts'),
 
@@ -15,52 +17,68 @@ const glob = require('glob'),
   JS_DIR = path.join(PRIVATE_DIR, 'js'),
   STYLES_DIR = path.join(PRIVATE_DIR, 'styles'),
   VIEWS_DIR = path.join(PRIVATE_DIR, 'views'),
-  EXTENSIONS = ['.css', '.gif', '.html', '.js', '.json', '.jpeg', '.jpg', '.png', '.scss', '.svg', '.webp'];
+  EXTENSIONS = ['.css', '.gif', '.html', '.js', '.json', '.jpeg', '.jpg', '.png', 'sass', '.scss', '.svg', '.webp'];
 
 function reduce(a, b) { a[path.parse(b).name] = b; return a; };
 
 /**
- * @type {import('webpack').Configuration}
+ * @type {webpack.Configuration}
  */
 module.exports = {
   devtool: false,
-  entry: glob.sync(path.join(JS_DIR, '**.js'))
-    .reduce(reduce, glob.sync(path.join(STYLES_DIR, '*.{css,scss}'))
-      .reduce(reduce, {})
-    ),
-  mode: 'none',
+  entry: glob.sync(path.join(JS_DIR, '**.js')).reduce(reduce, {}),
+  mode: 'development',
   module: {
     rules: [
       {
         test: /\.css$/,
         use: [
           MiniCssExtractPlugin.loader,
-          'css-loader'
+          //css-loader,
+          {
+            loader: 'css-loader',
+            options: {
+              modules: {
+                //localIdentName: "[local]-[hash:base64:5]",
+              }
+            }
+          }
         ]
       },
       {
         test: /\.(gif|jpe?g|png|svg|webp)$/i,
-        type: "asset",
+        type: 'asset',
+      },
+      {
+        test: /\.html$/i,
+        loader: "html-loader",
       },
       {
         test: /\.json$/i,
-        type: "asset/resource",
+        type: 'asset/resource',
       },
       {
         test: /\.less$/i,
         use: [
-          "style-loader",
-          "css-loader",
-          "less-loader",
+          'style-loader',
+          'css-loader',
+          'less-loader',
         ],
       },
       {
-        test: /\.scss$/,
+        test: /\.s[ac]ss$/i,
         use: [
           MiniCssExtractPlugin.loader,
-          'css-loader',
-          'sass-loader'
-        ]
+          {
+            loader: 'css-loader',
+            options: {
+              modules: {
+                //localIdentName: "[local]-[hash:base64:5]",
+              }
+            }
+          },
+          'sass-loader',
+        ],
       },
     ]
   },
@@ -85,7 +103,12 @@ module.exports = {
       }),
       new JsonMinimizerPlugin(),
       new TerserPlugin({
-        //extractComments: 'all',
+        extractComments: false,
+        /*extractComments: {
+          banner: (commentsFile) => `License information can be found in ${commentsFile}`,
+          condition: /^\**!|@preserve|@license|@cc_on/i,
+          filename: (fileData) => `${fileData.filename}.LICENSE`
+        },*/
         terserOptions: {
           compress: true,
           mangle: true,
@@ -106,12 +129,13 @@ module.exports = {
     hints: false
   },
   plugins: [
-    new CssMinimizerPlugin(),
+    //new CssMinimizerPlugin(),
     new CspHtmlWebpackPlugin({
       'base-uri': "'self'",
+      'img-src': "'self'",
       'object-src': "'none'",
       'script-src': "'self'",
-      'style-src': "'self'"
+      'style-src': "'self' https://fonts.googleapis.com"
     }, {
       enabled: true,
       hashEnabled: {
@@ -128,19 +152,29 @@ module.exports = {
       chunks: ['404', '404style', 'style'],
       filename: '404.html',
       inlineSource: '.(js|css)$',
+      minify: 'auto',
       title: 'Meet | Page Not Found'
     }),
     new HtmlWebpackPlugin({
       chunks: ['app', 'style'],
       filename: 'app.html',
+      minify: 'auto',
       title: 'Meet'
+    }),
+    new HtmlWebpackPlugin({
+      chunks: ['auth', 'authstyle'],
+      filename: 'auth.html',
+      minify: 'auto',
+      title: 'Meet | Authorization'
     }),
     new HtmlWebpackPlugin({
       chunks: ['index', 'style'],
       filename: 'index.html',
+      minify: 'auto',
       template: path.join(VIEWS_DIR, 'index.html'),
       title: 'Meet | The Place Where You Meet The Simplicity of Technology',
     }),
+    //new MangleCssClassPlugin({ classNameRegExp: '.*[a-zA-Z]-[a-zA-Z0-9]*', }),
     new MiniCssExtractPlugin({ filename: '[contenthash].css' }),
     new RemoveEmptyScriptsPlugin()
   ],

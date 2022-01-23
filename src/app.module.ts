@@ -13,12 +13,14 @@ import { UserSchema, UserService } from './user/user.service';
 import { UserModule } from './user/user.module';
 import { TemplateService } from './template/template.service';
 import { ApiModule } from './api/api.module';
+import { AuthController } from './auth/auth.controller';
+import { AuthService } from './auth/auth.service';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    ApiModule,
-    AuthModule.forRoot(),
+    ApiModule.forRoot(),
+    AuthModule,
     MailerModule.forRoot({
       defaults: {
         from: `"Meet" <${process.env.MAIL_ADDRESS}>`,
@@ -48,8 +50,8 @@ import { ApiModule } from './api/api.module';
     }),
     UserModule
   ],
-  controllers: [AppController],
-  providers: [AppService, UserService, TemplateService],
+  controllers: [AppController, AuthController],
+  providers: [AppService, AuthService, UserService, TemplateService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

@@ -1,1 +1,0 @@
-(()=>{const o="halilkochan48@gmail.com",a="halon";var n;n="3LC1JogtgKx4gjCH4WFUFeu87QGLGyU4zNNzkcKDDTDsHXk0rEqSAWWM0W1y2EoN",fetch("/api/v1/auth/login",{body:JSON.stringify({email:o,login_token:n,username:a}),headers:{"Content-Type":"application/json"},method:"POST"})})();
