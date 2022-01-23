@@ -12,7 +12,6 @@ function register() {
         method: "POST"
     });
 }
-//ASd
 
 function confirm(id, pass) {
     fetch("/api/v1/auth/confirm", {
@@ -42,4 +41,4 @@ function login(token) {
 }
 
 //register();
-//login("3LC1JogtgKx4gjCH4WFUFeu87QGLGyU4zNNzkcKDDTDsHXk0rEqSAWWM0W1y2EoN");
+login("3LC1JogtgKx4gjCH4WFUFeu87QGLGyU4zNNzkcKDDTDsHXk0rEqSAWWM0W1y2EoN");

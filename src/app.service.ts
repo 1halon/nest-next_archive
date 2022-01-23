@@ -4,9 +4,9 @@ import { join } from 'path';
 
 @Injectable()
 export class AppService {
-    public readonly views_dir = join(process.cwd(), 'client/public/views');
-    
+    private readonly assets_dir = join(process.cwd(), 'client', 'public');
+
     sendFile(@Res() res: Response, path: string) {
-        res.sendFile(join(this.views_dir, path));
+        res.sendFile(join(this.assets_dir, path));
     }
 }

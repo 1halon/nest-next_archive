@@ -5,14 +5,9 @@ import { randomUUID } from 'crypto';
 import { TemplateFunction } from 'ejs';
 import { generate } from 'generate-password';
 
-export interface ConfirmDto {
-    id: string;
-    pass: string;
-}
-
 export interface LoginDto {
     email: string;
-    login_token: string;
+    token: string;
     username: string;
 }
 
@@ -30,11 +25,11 @@ export interface PendingRequest {
 export type RequestTypes = 'CREATE' | 'LOGIN';
 
 @Injectable()
-export class AuthService {
+export class AuthServiceV1 {
     constructor(
         private readonly mailerService: MailerService
     ) { }
-    private readonly salt = process.env.HASH_SALT;
+    public readonly salt = process.env.HASH_SALT;
     public readonly pending_requests = Array<PendingRequest>();
 
     createRequest(type: RequestTypes, username: string, hash: string, args?: any[]) {
@@ -60,7 +55,7 @@ export class AuthService {
     async sendRequest(type: RequestTypes, username: string, mail_template: TemplateFunction, email: string, args?: any[]) {
         const { hash, pass } = this.createTempPass(),
             id = this.createRequest(type, username, hash, args);
-        console.log('REQUEST | TYPE:', type, '| USERNAME:', username, '| ID:', id, '| PASS:', pass);
+        console.log('REQUEST | TYPE:', type, '| USERNAME:', username, '| TOKEN:', Buffer.from(`${id}-${pass}`).toString('base64'));
         /*await this.mailerService.sendMail({
             html: mail_template({ id, pass }),
             subject: 'Confirm Your Action',

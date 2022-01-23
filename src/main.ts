@@ -3,6 +3,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { AppModule, NotFoundExceptionFilter } from './app.module';
 import helmet from 'helmet'
+import * as requestIp from 'request-ip';
 
 NestFactory.create<NestExpressApplication>(AppModule).then(function (app) {
   app.getHttpAdapter().useStaticAssets(join(process.cwd(), 'client/public'), { prefix: '/assets' });
@@ -14,6 +15,7 @@ NestFactory.create<NestExpressApplication>(AppModule).then(function (app) {
     origin: true
   });
   app.use(helmet());
+  app.use(requestIp.mw());
   app.useGlobalFilters(new NotFoundExceptionFilter());
   app.listen(80);
 });

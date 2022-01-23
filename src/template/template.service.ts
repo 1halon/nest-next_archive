@@ -5,7 +5,7 @@ import { extname, join } from 'path';
 
 @Injectable()
 export class TemplateService {
-    public readonly templates_dir = join(process.cwd(), 'client/private/templates');
+    public readonly templates_dir = join(process.cwd(), 'client', 'private', 'templates');
 
     compileTemplate(path: string) {
         return compile(readFileSync(join(this.templates_dir, path)).toString());

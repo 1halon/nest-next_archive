@@ -8,9 +8,9 @@ str.checkRequired(v => v != null);
 export interface User {
     createdAt: number;
     display_name: string;
-    id: string;
     email: string;
-    login_token: string;
+    id: string;
+    token: string;
     username: string;
 }
 
@@ -23,8 +23,8 @@ export interface CreationDto {
 export const UserSchema = new Schema({
     createdAt: { type: Number, required: true, immutable: true },
     display_name: { type: String, required: true },
-    id: { type: String, required: true, immutable: true, unique: true },
     email: { type: String, required: true, immutable: true, lowercase: true, trim: true },
+    id: { type: String, required: true, immutable: true, unique: true },
     login_token: { type: String, required: true },
     username: { type: String, required: true, immutable: true, lowercase: true, trim: true, unique: true },
 });
@@ -56,19 +56,18 @@ export class UserService {
         return { createdAt: Date.now(), display_name, email, id: randomUUID(), username } as User;
     }
 
-    async findUser(type: 'email', email: string): Promise<User>;
-    async findUser(type: 'id', id: number): Promise<User>;
-    async findUser(type: 'username', username: string): Promise<User>;
-    async findUser(p0: 'email' | 'id' | 'username', p1: number | string): Promise<User> {
-        return new Promise<User>((resolve, reject) => this.userModel.findOne({ [p0]: p1 }, {}, function (err, user: User) { if (err) reject(err); resolve(user); }));
+    async findUser(type: 'email', email: string): Promise<User | User[]>;
+    async findUser(type: 'username', username: string): Promise<User | User[]>;
+    async findUser(p0: 'email' | 'id' | 'username', p1: number | string): Promise<User | User[]> {
+        return await this.userModel.find({ [p0]: p1 });
     }
-    async findUserByEmail(email: string) {
-        return this.findUser('email', email);
-    }
-    async findUserByID(id: number) {
-        return this.findUser('id', id);
+    async findUserByEmailAndUsername(email: string, username: string) {
+        return await this.userModel.findOne({ email, username });
     }
     async findUserByUsername(username: string) {
-        return this.findUser('username', username);
+        return await this.findUser('username', username)[0];
+    }
+    async findUsersByEmail(email: string) {
+        return await this.findUser('email', email);
     }
 }

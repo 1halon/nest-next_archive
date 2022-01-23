@@ -1,26 +1,24 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, MiddlewareConsumer, Module, NestModule, NotFoundException, RequestMethod } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ApiController } from './api/v1/api.controller';
-import { ApiService } from './api/v1/api.service';
 import { AppMiddleware } from './app.middleware';
 import { join } from 'path';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
-import { AuthService } from './auth/auth.service';
-import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
 import { MailerModule } from "@nestjs-modules/mailer"
 import { EjsAdapter } from '@nestjs-modules/mailer/dist/adapters/ejs.adapter';
 import { UserSchema, UserService } from './user/user.service';
 import { UserModule } from './user/user.module';
 import { TemplateService } from './template/template.service';
+import { ApiModule } from './api/api.module';
 
 @Module({
   imports: [
-    AuthModule,
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({ isGlobal: true }),
+    ApiModule,
+    AuthModule.forRoot(),
     MailerModule.forRoot({
       defaults: {
         from: `"Meet" <${process.env.MAIL_ADDRESS}>`,
@@ -48,11 +46,10 @@ import { TemplateService } from './template/template.service';
       ttl: 60,
       limit: 10,
     }),
-    JwtModule.register({}),
     UserModule
   ],
-  controllers: [AppController, ApiController],
-  providers: [AppService, ApiService, AuthService, UserService, TemplateService],
+  controllers: [AppController],
+  providers: [AppService, UserService, TemplateService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
@@ -66,7 +63,8 @@ export class AppModule implements NestModule {
 @Catch(NotFoundException)
 export class NotFoundExceptionFilter implements ExceptionFilter {
   catch(exception: HttpException, host: ArgumentsHost) {
-    const ctx = host.switchToHttp(), response = ctx.getResponse();
-    response.sendFile(join(process.cwd(), 'client/public/views/404.html'));
+    const ctx = host.switchToHttp(), response = ctx.getResponse(); response.statusCode = 404;
+    response.sendFile(join(process.cwd(), 'client/public/404.html'));
   }
 }
+
