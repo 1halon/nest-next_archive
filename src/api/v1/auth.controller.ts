@@ -13,7 +13,7 @@ export class AuthControllerV1 {
         private readonly jwtService: JwtService,
         private readonly templateService: TemplateService,
         private readonly userService: UserService
-    ) { }
+    ) { };
     private readonly mail_templates = this.templateService.getAllCategoryTemplates('mail');
 
     @Post('confirm')
@@ -42,7 +42,7 @@ export class AuthControllerV1 {
                                 httpOnly: true,
                                 sameSite: 'strict',
                                 secure: true,
-                                signed: false
+                                signed: true
                             }).send({ token });
                         }
                         else throw new HttpException('Method Not Allowed', 405);

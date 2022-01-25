@@ -1,17 +1,21 @@
-//@import url(../styles/fonts.css);
+@import url(../styles/fonts.css);
 
 :root {
     color-scheme: dark;
     --background-primary: #121212;
     --background-secondary: #161616;
     --background-tertiary: #242424;
-    --font-primary: 'Open Sans', sans-serif;
+    --font-primary: 'Roboto', serif;
+    --font-display: 'Outfit', serif;
+    --font-code: 'Fira Code', monospace;
 }
 
 $background-primary: var(--background-primary);
 $background-secondary: var(--background-secondary);
 $background-tertiary: var(--background-tertiary);
 $font-primary: var(--font-primary);
+$font-display: var(--font-display);
+$font-code: var(--font-code);
 
 * {
     border: none;

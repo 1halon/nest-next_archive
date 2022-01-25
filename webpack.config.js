@@ -1,4 +1,6 @@
-const glob = require('glob'),
+const css_loader = { loader: 'css-loader', options: { modules: { localIdentName: '[local]-[hash:base64:5]' } } },
+  glob = require('glob'),
+  html_webpack_plugin_options = { hash: true, inject: 'head', minify: 'auto', scriptLoading: 'blocking' },
   path = require('path'),
   webpack = require('webpack'),
   ImageMinimizerPlugin = require('image-minimizer-webpack-plugin'),
@@ -7,17 +9,16 @@ const glob = require('glob'),
   CssMinimizerPlugin = require('css-minimizer-webpack-plugin'),
   CspHtmlWebpackPlugin = require('csp-html-webpack-plugin'),
   HtmlWebpackPlugin = require('html-webpack-plugin'),
-  MangleCssClassPlugin = require('mangle-css-class-webpack-plugin'),
   MiniCssExtractPlugin = require('mini-css-extract-plugin'),
   RemoveEmptyScriptsPlugin = require('webpack-remove-empty-scripts'),
+  { SubresourceIntegrityPlugin } = require('webpack-subresource-integrity'),
 
   CLIENT_DIR = path.join(__dirname, 'client'),
   PRIVATE_DIR = path.join(CLIENT_DIR, 'private'),
   PUBLIC_DIR = path.join(CLIENT_DIR, 'public'),
   JS_DIR = path.join(PRIVATE_DIR, 'js'),
-  STYLES_DIR = path.join(PRIVATE_DIR, 'styles'),
   VIEWS_DIR = path.join(PRIVATE_DIR, 'views'),
-  EXTENSIONS = ['.css', '.gif', '.html', '.js', '.json', '.jpeg', '.jpg', '.png', 'sass', '.scss', '.svg', '.webp'];
+  EXTENSIONS = ['.css', '.gif', '.html', '.js', '.json', '.jpeg', '.jpg', '.png', 'sass', '.scss', '.svg', '.ts', '.webp'];
 
 function reduce(a, b) { a[path.parse(b).name] = b; return a; };
 
@@ -27,22 +28,15 @@ function reduce(a, b) { a[path.parse(b).name] = b; return a; };
 module.exports = {
   devtool: false,
   entry: glob.sync(path.join(JS_DIR, '**.js')).reduce(reduce, {}),
-  mode: 'development',
+  mode: 'production',
   module: {
     rules: [
       {
         test: /\.css$/,
         use: [
           MiniCssExtractPlugin.loader,
-          //css-loader,
-          {
-            loader: 'css-loader',
-            options: {
-              modules: {
-                //localIdentName: "[local]-[hash:base64:5]",
-              }
-            }
-          }
+          css_loader,
+          'postcss-loader'
         ]
       },
       {
@@ -60,25 +54,24 @@ module.exports = {
       {
         test: /\.less$/i,
         use: [
-          'style-loader',
-          'css-loader',
+          MiniCssExtractPlugin.loader,
+          css_loader,
+          'postcss-loader',
           'less-loader',
-        ],
+        ]
       },
       {
         test: /\.s[ac]ss$/i,
         use: [
           MiniCssExtractPlugin.loader,
-          {
-            loader: 'css-loader',
-            options: {
-              modules: {
-                //localIdentName: "[local]-[hash:base64:5]",
-              }
-            }
-          },
+          css_loader,
+          'postcss-loader',
           'sass-loader',
-        ],
+        ]
+      },
+      {
+        test: /\.ts?$/,
+        use: 'ts-loader'
       },
     ]
   },
@@ -104,22 +97,19 @@ module.exports = {
       new JsonMinimizerPlugin(),
       new TerserPlugin({
         extractComments: false,
-        /*extractComments: {
-          banner: (commentsFile) => `License information can be found in ${commentsFile}`,
-          condition: /^\**!|@preserve|@license|@cc_on/i,
-          filename: (fileData) => `${fileData.filename}.LICENSE`
-        },*/
         terserOptions: {
           compress: true,
           mangle: true,
           toplevel: true
         }
       })
-    ]
+    ],
+    realContentHash: true
   },
   output: {
     clean: true,
     chunkFilename: '[name].js',
+    crossOriginLoading: 'anonymous',
     filename: '[contenthash].js',
     path: PUBLIC_DIR,
     publicPath: '/assets/',
@@ -129,7 +119,7 @@ module.exports = {
     hints: false
   },
   plugins: [
-    //new CssMinimizerPlugin(),
+    new CssMinimizerPlugin(),
     new CspHtmlWebpackPlugin({
       'base-uri': "'self'",
       'img-src': "'self'",
@@ -149,34 +139,33 @@ module.exports = {
       }
     }),
     new HtmlWebpackPlugin({
-      chunks: ['404', '404style', 'style'],
+      chunks: ['404'],
       filename: '404.html',
-      inlineSource: '.(js|css)$',
-      minify: 'auto',
-      title: 'Meet | Page Not Found'
+      ...html_webpack_plugin_options,
+      title: 'Meet | Page Not Found',
     }),
     new HtmlWebpackPlugin({
-      chunks: ['app', 'style'],
+      chunks: ['app'],
       filename: 'app.html',
-      minify: 'auto',
+      ...html_webpack_plugin_options,
       title: 'Meet'
     }),
     new HtmlWebpackPlugin({
-      chunks: ['auth', 'authstyle'],
+      chunks: ['auth'],
       filename: 'auth.html',
-      minify: 'auto',
+      ...html_webpack_plugin_options,
       title: 'Meet | Authorization'
     }),
     new HtmlWebpackPlugin({
-      chunks: ['index', 'style'],
+      chunks: ['index'],
       filename: 'index.html',
-      minify: 'auto',
+      ...html_webpack_plugin_options,
       template: path.join(VIEWS_DIR, 'index.html'),
       title: 'Meet | The Place Where You Meet The Simplicity of Technology',
     }),
-    //new MangleCssClassPlugin({ classNameRegExp: '.*[a-zA-Z]-[a-zA-Z0-9]*', }),
     new MiniCssExtractPlugin({ filename: '[contenthash].css' }),
-    new RemoveEmptyScriptsPlugin()
+    new RemoveEmptyScriptsPlugin(),
+    new SubresourceIntegrityPlugin()
   ],
   resolve: { extensions: EXTENSIONS },
   watch: false,
