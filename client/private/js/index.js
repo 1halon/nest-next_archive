@@ -1,5 +1,5 @@
 import index from "../styles/index";
 import "../styles/global";
-import { injectClassNames } from "./global";
+import global from "./global";
 
-injectClassNames(index);
+global.injectClassNames(index);

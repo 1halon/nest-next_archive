@@ -1,1 +1,0 @@
-var e,r;e={273:e=>{e.exports={injectClassNames:function(e){Array.isArray(e)||"object"!=typeof e||Object.keys(e).forEach((r=>document.body.innerHTML=document.body.innerHTML.replace(RegExp(r,"g"),e[r])))}}}},r={},function o(t){var n=r[t];if(void 0!==n)return n.exports;var s=r[t]={exports:{}};return e[t](s,s.exports,o),s.exports}(273);

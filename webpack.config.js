@@ -12,6 +12,7 @@ const css_loader = { loader: 'css-loader', options: { modules: { localIdentName:
   MiniCssExtractPlugin = require('mini-css-extract-plugin'),
   RemoveEmptyScriptsPlugin = require('webpack-remove-empty-scripts'),
   { SubresourceIntegrityPlugin } = require('webpack-subresource-integrity'),
+  WebpackObfuscator = require('webpack-obfuscator'),
 
   CLIENT_DIR = path.join(__dirname, 'client'),
   PRIVATE_DIR = path.join(CLIENT_DIR, 'private'),
@@ -99,7 +100,13 @@ module.exports = {
         extractComments: false,
         terserOptions: {
           compress: true,
-          mangle: true,
+          keep_classnames:false,
+          keep_fnames: false,
+          mangle: {
+            eval: true,
+            properties: true,
+            toplevel: true
+          },
           toplevel: true
         }
       })
@@ -165,7 +172,8 @@ module.exports = {
     }),
     new MiniCssExtractPlugin({ filename: '[contenthash].css' }),
     new RemoveEmptyScriptsPlugin(),
-    new SubresourceIntegrityPlugin()
+    new SubresourceIntegrityPlugin(),
+    //new WebpackObfuscator()
   ],
   resolve: { extensions: EXTENSIONS },
   watch: false,
