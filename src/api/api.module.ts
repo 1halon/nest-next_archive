@@ -1,6 +1,7 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from 'src/auth/jwt.strategy';
+import { S3Service } from 'src/s3/s3.service';
 import { TemplateService } from 'src/template/template.service';
 import { UserModule } from 'src/user/user.module';
 import { ApiControllerV1 } from './v1/api.controller';
@@ -8,7 +9,7 @@ import { ApiServiceV1 } from './v1/api.service';
 
 @Module({
     imports: [UserModule],
-    providers: [ApiServiceV1, TemplateService, JwtStrategy],
+    providers: [ApiServiceV1, JwtStrategy, S3Service, TemplateService],
     exports: [ApiServiceV1],
     controllers: [ApiControllerV1]
 })

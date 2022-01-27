@@ -9,12 +9,8 @@ import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { MailerModule } from "@nestjs-modules/mailer"
 import { EjsAdapter } from '@nestjs-modules/mailer/dist/adapters/ejs.adapter';
-import { UserSchema, UserService } from './user/user.service';
 import { UserModule } from './user/user.module';
-import { TemplateService } from './template/template.service';
 import { ApiModule } from './api/api.module';
-import { AuthController } from './auth/auth.controller';
-import { AuthService } from './auth/auth.service';
 
 @Module({
   imports: [
@@ -40,25 +36,22 @@ import { AuthService } from './auth/auth.service';
         service: 'gmail'
       }
     }),
-    MongooseModule.forFeature([
-      { name: "User", schema: UserSchema }
-    ]),
     MongooseModule.forRoot(process.env.MONGODB, { dbName: "meet" }),
     ThrottlerModule.forRoot({
       ttl: 60,
       limit: 10,
     }),
-    UserModule
+    UserModule,
   ],
-  controllers: [AppController, AuthController],
-  providers: [AppService, AuthService, UserService, TemplateService],
+  providers: [AppService],
+  controllers: [AppController],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(AppMiddleware).forRoutes({
+    /*consumer.apply(AppMiddleware).forRoutes({
       path: '/*',
       method: RequestMethod.ALL
-    })
+    })*/
   }
 }
 

@@ -2,7 +2,7 @@ import { Controller, Get, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { AppService } from 'src/app.service';
 
-@Controller()
+@Controller({ host: 'localhost' })
 export class AuthController {
     constructor(
         private readonly appService: AppService

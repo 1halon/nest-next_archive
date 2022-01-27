@@ -29,7 +29,7 @@ $font-code: var(--font-code);
     outline: none;
     user-select: none;
     text-rendering: optimizeLegibility;
-    pointer-events: none;
+    pointer-events: all;
     resize: none;
     scroll-behavior: smooth;
     aspect-ratio: auto;

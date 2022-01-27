@@ -11,11 +11,11 @@ NestFactory.create<NestExpressApplication>(AppModule).then(function (app) {
   app.enableCors({
     allowedHeaders: 'Accept,Authorization,Content-Type',
     credentials: true,
-    methods: 'GET,PUT,POST,DELETE,UPDATE,OPTIONS',
+    methods: 'DELETE,GET,POST,PUT,OPTIONS,UPDATE',
     origin: true
   });
   app.use(cookieParser(process.env.COOKIE_SECRET));
-  app.use(helmet());
-  app.useGlobalFilters(new NotFoundExceptionFilter());
+  //app.use(helmet());
+  //app.useGlobalFilters(new NotFoundExceptionFilter());
   app.listen(80);
 });

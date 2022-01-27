@@ -6,7 +6,7 @@ import { TemplateService } from 'src/template/template.service';
 import { CreationDto, User, UserService } from 'src/user/user.service';
 import { AuthServiceV1, LoginDto } from './auth.service';
 
-@Controller('api/v1/auth')
+@Controller({ host: 'localhost', path: 'api/v1/auth' })
 export class AuthControllerV1 {
     constructor(
         private readonly authService: AuthServiceV1,

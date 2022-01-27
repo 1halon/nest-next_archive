@@ -3,7 +3,7 @@ import { Request, Response } from 'express';
 import { AppService } from './app.service';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 
-@Controller()
+@Controller({ host: 'localhost' })
 export class AppController {
   constructor(private readonly appService: AppService) { }
 
