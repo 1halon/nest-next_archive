@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<script defer src="/assets/f049f49f05f85a16e5d3.js?eaf089eab894728ad3ef"></script><link href="/assets/decfd04b3a827ef6b905.css?eaf089eab894728ad3ef" rel="stylesheet"></head>
+<script defer src="/assets/f049f49f05f85a16e5d3.js?6442e4d9c462d2b225ed"></script><link href="/assets/decfd04b3a827ef6b905.css?6442e4d9c462d2b225ed" rel="stylesheet"></head>
 
 <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
@@ -25,97 +25,24 @@
         </div>
     </div>
     <div class="container">
-        <video id="1" autoplay muted></video>
-        <video id="2" autoplay muted></video>
-
+        <video id="1" autoplay muted style="width: 800px;"></video>
+        <video id="2" autoplay muted style="width: 800px;"></video>
     </div>
 
     <div class="buttons">
-        <button class="call">call</button>
+        <input type="text">
+        <button>call</button>
         <button>answer</button>
     </div>
 
+    <script src="https://jan-ivar.github.io/localSocket/localSocket.js"></script>
     <script>
-        const [video, video2] = document.querySelectorAll("video");
-        const [call, answer] = document.querySelectorAll("button");
-        const id = document.cookie.split("id=")[1];
-        const socket = new WebSocket("ws://localhost"), PCC = {
-            iceServers: [
-                {
-                    urls: "stun:stun.l.google.com:19302"
-                }
-            ]
-        }
-        socket.onmessage = async function () {
-            const data = await new Promise((resolve) => resolve(JSON.parse(event.data))).catch(() => event.data);
-            if (typeof data === "object") {
-                if (data.type === "answer") {
-                    if (!connection.currentRemoteDescription && data?.answer) {
-                        connection.setRemoteDescription(new RTCSessionDescription(data.answer));
-                    }
-                }
-                if (data.type === "call") {
-                    await connection.setRemoteDescription(new RTCSessionDescription(data.offer));
-
-                    const answer = await connection.createAnswer();
-                    await connection.setLocalDescription(answer);
-
-                    socket.send(JSON.stringify({
-                        type: "answer2",
-                        answer,
-                        id: 1
-                    }))
-                }
-            }
-        }
-        const connection = new RTCPeerConnection(PCC);
-        const can = [];
-        connection.addEventListener("icecandidate", (event) => {
-            event.candidate && can.push(event.candidate);
-        });
-        (async function () {
-            const local_stream = await navigator.mediaDevices.getDisplayMedia({
-                audio: true,
-                video: true
-            }), remote_stream = new MediaStream();
-
-            local_stream.getTracks().forEach(track => connection.addTrack(track, local_stream));
-            connection.addEventListener("track", function (event) {
-                event.streams[0].getTracks().forEach(track => remote_stream.addTrack(track));
-            })
-            video.srcObject = local_stream;
-            video2.srcObject = remote_stream;
-        })();
-
-        call.onclick = async function () {
-            const offer = await connection.createOffer();
-            await connection.setLocalDescription(offer);
-
-            socket.send(JSON.stringify({
-                type: "call",
-                offer,
-                id
-            }));
-
-        }
-
-        answer.onclick = async function () {
-            socket.send(JSON.stringify({
-                type: "answer",
-                id: 1
-            }));
-        }
-
-        async function getDisplay() {
-            const stream = await navigator.mediaDevices.getDisplayMedia({
-                audio: true,
-                video: true
-            })//.catch(console.log);
-            video.srcObject = stream;
-            const audio_track = stream.getAudioTracks()[0],
-                video_track = stream.getVideoTracks()[0];
-            return video_track;
-        }
+        const [local_video, remote_video] = document.querySelectorAll("video"),
+            input = document.querySelector("input"),
+            [call, answer] = document.querySelectorAll("button");
+        const socket = new WebSocket("ws://localhost"),
+            connection = new RTCPeerConnection();
+        
     </script>
 </body>
 

@@ -9,11 +9,10 @@ import {
     WebSocketServer,
     WsResponse,
 } from '@nestjs/websockets';
-import { from, Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { randomUUID } from 'crypto';
 import { Server, WebSocket } from 'ws';
 
-const offers = {};
+const clients = {} as Record<string, WebSocket>;
 
 @WebSocketGateway()
 export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
@@ -25,27 +24,10 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect, OnG
     }
 
     handleConnection(client: WebSocket, ...args: any[]) {
+        const id = randomUUID(); clients[id] = client;
+        client.send(JSON.stringify({ type: 'ID', id }));
         client.onmessage = async (event) => {
             const data = await new Promise((resolve) => resolve(JSON.parse(event.data.toString()))).catch(() => event.data.toString()) as any;
-            
-            if (data.type === 'call') {
-                offers[data.id] = {
-                    offer: data.offer,
-                    client: client
-                };
-            }
-            if (data.type === 'answer') {
-                client.send(JSON.stringify({
-                    type: 'call',
-                    offer: offers[data.id].offer
-                }));
-            }
-            if (data.type === 'answer2') {
-                offers[data.id].client.send(JSON.stringify({
-                    type: 'answer',
-                    answer: data.answer
-                }));
-            }
         }
     }
 
