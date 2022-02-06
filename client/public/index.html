@@ -1,1 +1,122 @@
-<!doctype html><html><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Meet | The Place Where You Meet The Simplicity of Technology</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><script defer="defer" src="/assets/b142a8cf30c0f914adb9.js?a566966785b220c40359" integrity="sha384-mZMXR+tB+T+TJscG0/tklcshf7wweEXKiI7N3ssLHXA6e4G2NGBjRmgrg4mC2zu3" crossorigin="anonymous"></script><link href="/assets/1fa759c07b41e3ae0e62.css?a566966785b220c40359" rel="stylesheet" integrity="sha384-+Vd7NztH6Akz3s78IwUeCbKOXdD/1IbRPQ93GC+jjf2Huk5DSySzqi0kRwHQRpoY" crossorigin="anonymous"></head><body><input type="file" name="avatar"/></body></html>
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script defer src="/assets/f049f49f05f85a16e5d3.js?eaf089eab894728ad3ef"></script><link href="/assets/decfd04b3a827ef6b905.css?eaf089eab894728ad3ef" rel="stylesheet"></head>
+
+<body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div class="nav">
+        <div class="container">
+            <div class="logo">Meet</div>
+            <div class="links">
+                <a href="#" class="link">Premium</a>
+                <a href="#" class="link">Status</a>
+                <a href="#" class="link">Support</a>
+            </div>
+            <div class="login">
+                <a href="/login" class="button">Login</a>
+            </div>
+        </div>
+    </div>
+    <div class="container">
+        <video id="1" autoplay muted></video>
+        <video id="2" autoplay muted></video>
+
+    </div>
+
+    <div class="buttons">
+        <button class="call">call</button>
+        <button>answer</button>
+    </div>
+
+    <script>
+        const [video, video2] = document.querySelectorAll("video");
+        const [call, answer] = document.querySelectorAll("button");
+        const id = document.cookie.split("id=")[1];
+        const socket = new WebSocket("ws://localhost"), PCC = {
+            iceServers: [
+                {
+                    urls: "stun:stun.l.google.com:19302"
+                }
+            ]
+        }
+        socket.onmessage = async function () {
+            const data = await new Promise((resolve) => resolve(JSON.parse(event.data))).catch(() => event.data);
+            if (typeof data === "object") {
+                if (data.type === "answer") {
+                    if (!connection.currentRemoteDescription && data?.answer) {
+                        connection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                    }
+                }
+                if (data.type === "call") {
+                    await connection.setRemoteDescription(new RTCSessionDescription(data.offer));
+
+                    const answer = await connection.createAnswer();
+                    await connection.setLocalDescription(answer);
+
+                    socket.send(JSON.stringify({
+                        type: "answer2",
+                        answer,
+                        id: 1
+                    }))
+                }
+            }
+        }
+        const connection = new RTCPeerConnection(PCC);
+        const can = [];
+        connection.addEventListener("icecandidate", (event) => {
+            event.candidate && can.push(event.candidate);
+        });
+        (async function () {
+            const local_stream = await navigator.mediaDevices.getDisplayMedia({
+                audio: true,
+                video: true
+            }), remote_stream = new MediaStream();
+
+            local_stream.getTracks().forEach(track => connection.addTrack(track, local_stream));
+            connection.addEventListener("track", function (event) {
+                event.streams[0].getTracks().forEach(track => remote_stream.addTrack(track));
+            })
+            video.srcObject = local_stream;
+            video2.srcObject = remote_stream;
+        })();
+
+        call.onclick = async function () {
+            const offer = await connection.createOffer();
+            await connection.setLocalDescription(offer);
+
+            socket.send(JSON.stringify({
+                type: "call",
+                offer,
+                id
+            }));
+
+        }
+
+        answer.onclick = async function () {
+            socket.send(JSON.stringify({
+                type: "answer",
+                id: 1
+            }));
+        }
+
+        async function getDisplay() {
+            const stream = await navigator.mediaDevices.getDisplayMedia({
+                audio: true,
+                video: true
+            })//.catch(console.log);
+            video.srcObject = stream;
+            const audio_track = stream.getAudioTracks()[0],
+                video_track = stream.getVideoTracks()[0];
+            return video_track;
+        }
+    </script>
+</body>
+
+</html>

@@ -6,12 +6,14 @@ import { TemplateService } from 'src/template/template.service';
 import { UserModule } from 'src/user/user.module';
 import { ApiControllerV1 } from './v1/api.controller';
 import { ApiServiceV1 } from './v1/api.service';
+import { AuthControllerV1 } from './v1/auth.controller';
+import { AuthServiceV1 } from './v1/auth.service';
 
 @Module({
     imports: [UserModule],
-    providers: [ApiServiceV1, JwtStrategy, S3Service, TemplateService],
-    exports: [ApiServiceV1],
-    controllers: [ApiControllerV1]
+    providers: [ApiServiceV1, AuthServiceV1, JwtStrategy, S3Service, TemplateService],
+    exports: [ApiServiceV1, AuthServiceV1],
+    controllers: [ApiControllerV1, AuthControllerV1]
 })
 export class ApiModule {
     static forRoot(): DynamicModule {

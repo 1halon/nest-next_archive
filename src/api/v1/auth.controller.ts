@@ -18,7 +18,7 @@ export class AuthControllerV1 {
 
     @Post('confirm')
     @HttpCode(200)
-    confirm(@Query('token') token: string, @Res() res: Response) {
+    async confirm(@Query('token') token: string, @Res() res: Response) {
         if (token) {
             const [id, pass] = Buffer.from(token, 'base64').toString().split('-'),
                 request = this.authService.pending_requests.find(request => request.id === id);
@@ -29,10 +29,8 @@ export class AuthControllerV1 {
                         if (request.type === 'CREATE') {
                             const { hash, pass } = this.authService.createTempPass(64),
                                 userModel = Object.assign(request.args[0], { token: hash }) as User;
-                            try {
-                                new this.userService.userModel(userModel).save()
-                                    .then(() => console.log('LOGIN_TOKEN:', pass))
-                            } catch (error) { throw new HttpException('Bad Request', 400); }
+                            await new this.userService.userModel(userModel).save().catch(() => { throw new HttpException('Bad Request', 400); });
+                            return { login_token: pass };
                         } else if (request.type === 'LOGIN') {
                             const token = this.jwtService.sign({
                                 id: request.id, userID: request.args[0], username: request.username

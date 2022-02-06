@@ -1,6 +1,6 @@
 declare namespace GlobalScssNamespace {
   export interface IGlobalScss {
-    asd: string;
+    link: string;
   }
 }
 

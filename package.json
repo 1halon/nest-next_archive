@@ -68,7 +68,9 @@
         "rimraf": "^3.0.2",
         "rxjs": "^7.2.0",
         "smtp-server": "^3.9.0",
-        "uuid": "^8.3.2"
+        "uuid": "^8.3.2",
+        "webrtc-adapter": "^8.1.1",
+        "ws": "^8.4.2"
     },
     "devDependencies": {
         "@nestjs/cli": "^8.0.0",
@@ -85,6 +87,7 @@
         "@types/passport-local": "^1.0.34",
         "@types/request-ip": "^0.0.37",
         "@types/supertest": "^2.0.11",
+        "@types/ws": "^8.2.2",
         "@typescript-eslint/eslint-plugin": "^5.0.0",
         "@typescript-eslint/parser": "^5.0.0",
         "compression-webpack-plugin": "^9.2.0",

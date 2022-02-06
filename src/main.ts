@@ -4,6 +4,7 @@ import { AppModule, NotFoundExceptionFilter } from './app.module';
 import { join } from 'path';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import { WsAdapter } from '@nestjs/platform-ws' //Add this line
 
 NestFactory.create<NestExpressApplication>(AppModule).then(function (app) {
   app.getHttpAdapter().useStaticAssets(join(process.cwd(), 'client/public'), { prefix: '/assets/' });
@@ -17,5 +18,6 @@ NestFactory.create<NestExpressApplication>(AppModule).then(function (app) {
   app.use(cookieParser(process.env.COOKIE_SECRET));
   //app.use(helmet());
   //app.useGlobalFilters(new NotFoundExceptionFilter());
+  app.useWebSocketAdapter(new WsAdapter(app));
   app.listen(80);
 });
