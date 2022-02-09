@@ -9,6 +9,7 @@ const css_loader = { loader: 'css-loader', options: { modules: { localIdentName:
   CssMinimizerPlugin = require('css-minimizer-webpack-plugin'),
   CspHtmlWebpackPlugin = require('csp-html-webpack-plugin'),
   HtmlWebpackPlugin = require('html-webpack-plugin'),
+  InjectBodyPlugin = require('inject-body-webpack-plugin').default,
   MiniCssExtractPlugin = require('mini-css-extract-plugin'),
   RemoveEmptyScriptsPlugin = require('webpack-remove-empty-scripts'),
   { SubresourceIntegrityPlugin } = require('webpack-subresource-integrity'),
@@ -118,7 +119,7 @@ module.exports = (env, argv) => {
       publicPath: '/assets/',
     },
     performance: {
-      assetFilter: (filename) => EXTENSIONS.includes(filename),
+      assetFilter: (filename) => EXTENSIONS.includes(path.extname(filename)),
       hints: false
     },
     plugins: [
@@ -165,6 +166,9 @@ module.exports = (env, argv) => {
         ...html_webpack_plugin_options,
         template: path.join(VIEWS_DIR, 'index.html'),
         title: 'Meet | The Place Where You Meet The Simplicity of Technology',
+      }),
+      new InjectBodyPlugin({
+        content: '\n<noscript>You need to enable JavaScript to run this app.</noscript>\n'
       }),
       new MiniCssExtractPlugin({ filename: '[contenthash].css' }),
       new RemoveEmptyScriptsPlugin(),

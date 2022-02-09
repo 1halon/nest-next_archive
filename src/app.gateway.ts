@@ -25,9 +25,29 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect, OnG
 
     handleConnection(client: WebSocket, ...args: any[]) {
         const id = randomUUID(); clients[id] = client;
-        client.send(JSON.stringify({ type: 'ID', id }));
+        client.send(JSON.stringify({ event: 'ID', id }));
         client.onmessage = async (event) => {
             const data = await new Promise((resolve) => resolve(JSON.parse(event.data.toString()))).catch(() => event.data.toString()) as any;
+
+            if (data.event === 'CALL') {
+                clients[data.to]?.send(JSON.stringify({
+                    event: 'CALL',
+                    offer: data.offer,
+                    from: data._id
+                }));
+            } else if (data.event === 'ANSWER') {
+                clients[data.to]?.send(JSON.stringify({
+                    event: 'ANSWER',
+                    answer: data.answer,
+                    from: data._id
+                }));
+            } else if (data.event === 'ICECANDIDATE') {
+                clients[data.to]?.send(JSON.stringify({
+                    event: 'ICECANDIDATE',
+                    candidate: data.candidate,
+                    from: data._id
+                }));
+            }
         }
     }
 

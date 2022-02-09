@@ -54,6 +54,7 @@
         "express-subdomain": "^1.0.5",
         "generate-password": "^1.7.0",
         "helmet": "^5.0.1",
+        "inject-body-webpack-plugin": "^1.3.0",
         "luxon": "^2.2.0",
         "mailparser": "^3.4.0",
         "mongoose": "^6.1.6",
