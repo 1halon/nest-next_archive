@@ -4,7 +4,7 @@ import { AppModule, NotFoundExceptionFilter } from './app.module';
 import { join } from 'path';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
-import { WsAdapter } from '@nestjs/platform-ws' //Add this line
+import { WsAdapter } from '@nestjs/platform-ws'
 
 NestFactory.create<NestExpressApplication>(AppModule).then(function (app) {
   app.getHttpAdapter().useStaticAssets(join(process.cwd(), 'client/public'), { prefix: '/assets/' });
