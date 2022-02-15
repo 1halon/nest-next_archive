@@ -6,4 +6,4 @@ const styles = {
 }
 injectClassNames(styles.index);
 
-new RTCConnection({ server: 'ws://localhost' });
+//new RTCConnection({ server: 'ws://localhost' });

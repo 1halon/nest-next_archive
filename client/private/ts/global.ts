@@ -1,12 +1,17 @@
 export class Logger {
     constructor(options?) {
         this.title = options.title;
+        
     }
     private title;
+    _options(options) {
+        if (typeof options !== 'object' || Array.isArray(options)) options = {};
+
+    }
 
     debug(data) {
         const { args, message, title } = data;
-        console.log(`%c[${title ?? this.title}]`, "color: purple;", message, ...args);
+        console.log(`%c[${title ?? this.title}]`, 'color: purple;', message, ...args);
     }
 }
 
@@ -15,13 +20,13 @@ interface LoggerOptions { }
 export class RTCConnection {
     constructor(options?) {
         this.connection = new RTCPeerConnection();
-        this.logger = new Logger({title: 'RTCConnection'});
+        this.logger = new Logger({ title: 'RTCConnection' });
         this.ws = new WebSocket(options.server);
         this.ws.addEventListener('message', async ({ data }) => {
             const message = await new Promise((resolve) => resolve(JSON.parse(data))).catch(() => data) as any;
 
             if (typeof message === 'object' && !Array.isArray(message)) {
-                
+
             }
         });
 

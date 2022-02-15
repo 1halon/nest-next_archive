@@ -11,7 +11,7 @@ import { MailerModule } from "@nestjs-modules/mailer"
 import { EjsAdapter } from '@nestjs-modules/mailer/dist/adapters/ejs.adapter';
 import { UserModule } from './user/user.module';
 import { ApiModule } from './api/api.module';
-import { AppGateway } from './app.gateway';
+import { WrtcModule } from './wrtc/wrtc.module';
 
 @Module({
   imports: [
@@ -43,8 +43,9 @@ import { AppGateway } from './app.gateway';
       limit: 10,
     }),
     UserModule,
+    WrtcModule,
   ],
-  providers: [AppService, AppGateway],
+  providers: [AppService],
   controllers: [AppController],
 })
 export class AppModule implements NestModule {
