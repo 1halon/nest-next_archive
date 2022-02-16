@@ -1,43 +1,52 @@
 export class Logger {
-    constructor(options?) {
-        this.title = options.title;
-        
+    constructor(title?: string) {
+        this.title = title;
     }
     private title;
-    _options(options) {
-        if (typeof options !== 'object' || Array.isArray(options)) options = {};
 
+    debug(message?: any, args?: any[], title?: string);
+    debug(data: { args: [], message: any, title?: string });
+    debug(p0?, p1?, p2?) {
+        const data = { args: [], message: '', title: this.title } as any;
+        switch (typeof p0) {
+            case 'object':
+                Object.keys(p0).forEach(key => data[key] = p0[key]);
+                break;
+
+            default:
+                data.args = p1 ?? [];
+                data.message = p0 ?? '';
+                data.title = p2 ?? this.title;
+                break;
+        }
+
+        console.log(`%c[${data.title}]`, 'color: purple;', data.message, ...data.args);
     }
 
-    debug(data) {
-        const { args, message, title } = data;
-        console.log(`%c[${title ?? this.title}]`, 'color: purple;', message, ...args);
-    }
+    error() { console.error.apply(this, arguments); }
+
+    log() { console.log.apply(this, arguments); }
+
+    warn() { console.warn.apply(this, arguments); }
 }
-
-interface LoggerOptions { }
+window['logger'] = new Logger('Window');
 
 export class RTCConnection {
     constructor(options?) {
         this.connection = new RTCPeerConnection();
-        this.logger = new Logger({ title: 'RTCConnection' });
+        this.logger = new Logger('RTCConnection');
         this.ws = new WebSocket(options.server);
         this.ws.addEventListener('message', async ({ data }) => {
             const message = await new Promise((resolve) => resolve(JSON.parse(data))).catch(() => data) as any;
 
-            if (typeof message === 'object' && !Array.isArray(message)) {
-
+            if (message.event === 'ID') window['id'] = message.id;
+            else if (message.event === 'ANSWER') {
+                await this.connection.setRemoteDescription(message.answer);
             }
         });
 
         this.connection.addEventListener('connectionstatechange', () => {
             this.logger.debug({ message: `connectionState => ${this.connection.connectionState}` });
-        });
-
-        this.connection.addEventListener('icecandidate', ({ candidate }) => {
-            if (candidate) {
-                this.logger.debug({ args: [candidate], message: '[ICECANDIDATE]' });
-            }
         });
 
         this.connection.addEventListener('iceconnectionstatechange', () => {
@@ -49,7 +58,12 @@ export class RTCConnection {
         });
 
         this.connection.addEventListener('negotiationneeded', async () => {
-            //this.connection.setLocalDescription(await this.connection.createOffer());
+            await this.connection.setLocalDescription(await this.connection.createOffer());
+            this.ws.send(JSON.stringify({
+                _id: window['id'],
+                event: 'OFFER',
+                offer: this.connection.localDescription
+            }));
         });
 
         this.connection.addEventListener('signalingstatechange', () => {
@@ -61,12 +75,10 @@ export class RTCConnection {
             this.logger.debug({ args: [track], message: '[TRACK]' });
         });
     }
-    private connection: RTCPeerConnection;
-    private logger: Logger;
-    private ws: WebSocket;
+    public connection: RTCPeerConnection;
+    public logger: Logger;
+    public ws: WebSocket;
 }
-
-export function debug(title, message, ...args) { console.log(`%c[${title}]`, "color: purple;", message, ...args); }
 
 export function injectClassNames(object: object) {
     if (!Array.isArray(object) && typeof object === 'object')

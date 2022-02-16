@@ -1,8 +1,9 @@
 import { OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, SubscribeMessage, WebSocketGateway } from '@nestjs/websockets';
 import { randomUUID } from 'crypto';
 import { Server, WebSocket } from 'ws';
+import wrtc from 'wrtc';
 
-const clients = {} as Record<string, WebSocket>;
+const clients = {} as Record<string, RTCPeerConnection>;
 
 @WebSocketGateway()
 export class WrtcGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
@@ -12,28 +13,22 @@ export class WrtcGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
   }
   handleConnection(client: WebSocket, ...args: any[]) {
-    const id = randomUUID(); clients[id] = client;
+    const id = randomUUID().split('-').join(''),
+      rtc = new wrtc.RTCPeerConnection();
+      
+    clients[id] = rtc;
     client.send(JSON.stringify({ event: 'ID', id }));
     client.onmessage = async (event) => {
-      const data = await new Promise((resolve) => resolve(JSON.parse(event.data.toString()))).catch(() => event.data.toString()) as any;
+      const message = await new Promise((resolve) => resolve(JSON.parse(event.data.toString()))).catch(() => event.data.toString()) as any;
 
-      if (data.event === 'CALL') {
-        clients[data.to]?.send(JSON.stringify({
-          event: 'CALL',
-          offer: data.offer,
-          from: data._id
-        }));
-      } else if (data.event === 'ANSWER') {
-        clients[data.to]?.send(JSON.stringify({
+      const rtc = clients[message._id];
+
+      if (message.event === 'OFFER') {
+        await rtc.setRemoteDescription(message.offer);
+        await rtc.setLocalDescription(await rtc.createAnswer());
+        client.send(JSON.stringify({
           event: 'ANSWER',
-          answer: data.answer,
-          from: data._id
-        }));
-      } else if (data.event === 'ICECANDIDATE') {
-        clients[data.to]?.send(JSON.stringify({
-          event: 'ICECANDIDATE',
-          candidate: data.candidate,
-          from: data._id
+          answer: rtc.localDescription
         }));
       }
     }
