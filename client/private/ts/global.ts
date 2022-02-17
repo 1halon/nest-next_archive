@@ -30,9 +30,10 @@ export class Logger {
     warn() { console.warn.apply(this, arguments); }
 }
 window['logger'] = new Logger('Window');
-
 export class RTCConnection {
     constructor(options?) {
+        const candidates = [];
+        this.channels = {};
         this.connection = new RTCPeerConnection();
         this.logger = new Logger('RTCConnection');
         this.ws = new WebSocket(options.server);
@@ -41,12 +42,21 @@ export class RTCConnection {
 
             if (message.event === 'ID') window['id'] = message.id;
             else if (message.event === 'ANSWER') {
-                await this.connection.setRemoteDescription(message.answer);
-            }
+                await this.connection.setRemoteDescription(message.sdp);
+                candidates.forEach(candidate => this.ws.send(JSON.stringify({
+                    _id: window['id'],
+                    event: 'ICECANDIDATE',
+                    candidate
+                })))
+            } else if (message.event === 'ICECANDIDATE') this.connection.addIceCandidate(message.candidate);
         });
 
         this.connection.addEventListener('connectionstatechange', () => {
             this.logger.debug({ message: `connectionState => ${this.connection.connectionState}` });
+        });
+
+        this.connection.addEventListener('icecandidate', ({ candidate }) => {
+            candidate && candidates.push(candidate);
         });
 
         this.connection.addEventListener('iceconnectionstatechange', () => {
@@ -62,7 +72,7 @@ export class RTCConnection {
             this.ws.send(JSON.stringify({
                 _id: window['id'],
                 event: 'OFFER',
-                offer: this.connection.localDescription
+                sdp: this.connection.localDescription
             }));
         });
 
@@ -75,6 +85,7 @@ export class RTCConnection {
             this.logger.debug({ args: [track], message: '[TRACK]' });
         });
     }
+    public channels: Record<string, RTCDataChannel>;
     public connection: RTCPeerConnection;
     public logger: Logger;
     public ws: WebSocket;
