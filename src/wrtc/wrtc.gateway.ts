@@ -1,26 +1,52 @@
-import { OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, SubscribeMessage, WebSocketGateway } from '@nestjs/websockets';
+import { OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, WebSocketGateway } from '@nestjs/websockets';
 import { randomUUID } from 'crypto';
 import { Server, WebSocket } from 'ws';
 import wrtc from 'wrtc';
+import { createWriteStream } from 'fs';
 
-const clients = {} as Record<string, { _id: string, wrtc: { candidates: [], channels: Record<string, RTCDataChannel>, connection: RTCPeerConnection }, ws: WebSocket }>;
+interface Client {
+  id: string;
+  wrtc: {
+    candidates: [];
+    channels: Record<string, RTCDataChannel>;
+    connection: RTCPeerConnection
+  };
+  ws: WebSocket;
+}
 
 @WebSocketGateway()
 export class WrtcGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
+  private clients: Record<string, Client>;
   private readonly server: Server;
 
   afterInit(server: Server) {
-
+    this.clients = {};
   }
   handleConnection(ws: WebSocket, ...args: any[]) {
-    const id = randomUUID().split('-').join('');
-    clients[id] = { _id: id, wrtc: { candidates: [], channels: {}, connection: new wrtc.RTCPeerConnection() }, ws }
+    const id = randomUUID(),
+      client = { id, wrtc: { candidates: [], channels: {}, connection: new wrtc.RTCPeerConnection() }, ws } as Client;
+    this.clients[id] = client;
+
+    const { wrtc: { candidates, channels, connection } } = client;
+
+    connection.addEventListener('datachannel', ({ channel }) => {
+      const destroy = () => {
+        channels[channel.label].close();
+        delete channels[channel.label];
+      }
+      channels[channel.label] = channel;
+      channel.addEventListener('close', destroy);
+      channel.addEventListener('error', destroy)
+      channel.addEventListener('open', () => {
+        channel.addEventListener('message', ({ data }) => {
+          channel.send(data);
+        });
+      });
+    })
 
     ws.send(JSON.stringify({ event: 'ID', id }));
-    ws.onmessage = async (event) => {
-      const message = await new Promise((resolve) => resolve(JSON.parse(event.data.toString()))).catch(() => event.data.toString()) as any;
-
-      const { _id, wrtc: { candidates, channels, connection } } = clients[message._id];
+    ws.addEventListener('message', async function ({ data }) {
+      const message = await new Promise((resolve) => resolve(JSON.parse(data.toString()))).catch(() => data.toString()) as any;
 
       if (message.event === 'OFFER') {
         await connection.setRemoteDescription(message.sdp);
@@ -36,9 +62,9 @@ export class WrtcGateway implements OnGatewayConnection, OnGatewayDisconnect, On
       } else if (message.event === 'ICECANDIDATE') {
         connection.addIceCandidate(message.candidate);
       }
-    }
+    });
   }
-  handleDisconnect(client: WebSocket) {
+  handleDisconnect(ws: WebSocket) {
 
   }
 }
