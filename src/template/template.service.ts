@@ -10,6 +10,7 @@ export class TemplateService {
     compileTemplate(path: string) {
         return compile(readFileSync(join(this.templates_dir, path)).toString());
     }
+    
     getAllTemplates() {
         const templates = {};
         for (const category of readdirSync(this.templates_dir)) {
@@ -19,6 +20,7 @@ export class TemplateService {
         }
         return templates;
     }
+    
     getAllCategoryTemplates(category: string) {
         const templates = {
             [Symbol.iterator]: function* () {

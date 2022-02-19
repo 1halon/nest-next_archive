@@ -18,7 +18,8 @@ export class S3Service {
             secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
         })
         this.s3 = s3;
-    }
+    };
+    
     public s3: AWS.S3;
     private readonly mimeTypes = {
         'image': {

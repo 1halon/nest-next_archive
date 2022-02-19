@@ -34,6 +34,7 @@ export class UserService {
     constructor(
         @InjectModel('User') public readonly userModel: Model<User>
     ) { };
+    
     private readonly mail_regex = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
     async createUser(creation_dto: CreationDto) {

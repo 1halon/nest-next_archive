@@ -14,6 +14,7 @@ export class AuthControllerV1 {
         private readonly templateService: TemplateService,
         private readonly userService: UserService
     ) { };
+    
     private readonly mail_templates = this.templateService.getAllCategoryTemplates('mail');
 
     @Post('confirm')

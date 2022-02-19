@@ -10,9 +10,9 @@ const RTCC = new RTCConnection({ gateway: 'ws://localhost' }); window['RTCC'] = 
 
 const local_video = document.querySelector('video'),
     local_audio = document.createElement('audio');
-    document.body.append(local_audio);
+document.body.append(local_audio);
 
-
+import { Buffer } from 'buffer';
 RTCC.ws.addEventListener('open', () =>
     navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(function (stream) {
         const context = new AudioContext(), source = context.createMediaStreamSource(stream),
@@ -30,6 +30,7 @@ RTCC.ws.addEventListener('open', () =>
         const recorder = new MediaRecorder(stream), volumes = new Uint8Array(analyser.frequencyBinCount);
         let threshold = 25, interval;
         recorder.addEventListener('dataavailable', async function ({ data }) {
+            if (!data.size) return;
             analyser.getByteFrequencyData(volumes);
             let volumeSum = 0;
             for (const volume of volumes)
@@ -37,8 +38,9 @@ RTCC.ws.addEventListener('open', () =>
             const averageVolume = volumeSum / volumes.length,
                 volume = Math.floor(averageVolume * 100 / 127);
             if (volume >= threshold) {
-                const buffer = await data.arrayBuffer(), channel = RTCC.channels['audio'];
-                if (channel.readyState === 'open' && buffer.byteLength > 0) channel.send(buffer);
+                const buffer = await data.arrayBuffer(), channel = RTCC.channels['AUDIO'];
+                console.log(buffer);
+                if (channel.readyState === 'open') channel.send(buffer);
             }
         });
         recorder.addEventListener('start', function () {

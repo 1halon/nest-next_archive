@@ -29,6 +29,7 @@ export class AuthServiceV1 {
     constructor(
         private readonly mailerService: MailerService
     ) { };
+    
     public readonly salt = process.env.HASH_SALT;
     public readonly pending_requests = Array<PendingRequest>();
 

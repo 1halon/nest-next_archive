@@ -31,7 +31,7 @@ function reduce(a, b) { a[path.parse(b).name] = b; return a; };
 module.exports = (env, argv) => {
   const mode = argv.mode ?? 'production'; return {
     devtool: false,
-    entry: glob.sync(path.join(TS_DIR, '**.ts')).reduce(reduce, {}),
+    entry: glob.sync(path.join(TS_DIR, '**.ts')).filter(path => !path.endsWith('d.ts')).reduce(reduce, {}),
     mode: mode,
     module: {
       rules: [
