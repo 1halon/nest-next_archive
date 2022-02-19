@@ -1,3 +1,12 @@
+interface RTCConnectionOptions {
+    gateway: string;
+}
+
+interface WSOptions {
+    debug?: boolean | string;
+    protocols?: string | string[];
+}
+
 export class Logger {
     constructor(title?: string) {
         this.title = title;
@@ -55,15 +64,18 @@ export class WS extends WebSocket {
             this.logger = new Logger(`WS${typeof options?.debug === 'string' && options?.debug !== '' ? `<${options?.debug}>` : ''}`);
             this.logger.debug(`[CONNECT] ${url}`);
 
+            this.addEventListener('close', () => { this.logger.debug(`[CLOSED] ${url}`); });
             this.addEventListener('message', async ({ data }) =>
                 this.logger.debug(await new Promise((resolve) => resolve(JSON.parse(data))).catch(() => data) as any));
-            this.addEventListener('open', () => {
-                this.logger.debug(`[CONNECTED] ${url} in ${Date.now() - start} ms`);
-            });
+            this.addEventListener('open', () => { this.logger.debug(`[CONNECTED] ${url} in ${Date.now() - start} ms`); });
         }
     }
     public logger: Logger | null;
     public options: WSOptions;
+    close(code?: number, reason?: string): void {
+        if (this.options.debug) this.logger.debug(`[CLOSED] ${{ code, reason }}`);
+        WebSocket.prototype.send.apply(this, [code, reason]);
+    }
     send(data: string | object | ArrayBufferLike | Blob | ArrayBufferView): void {
         if (this.options.debug) this.logger.debug(data);
         if (typeof data === 'object') try { data = JSON.stringify(data); } catch (error) { }
@@ -71,12 +83,6 @@ export class WS extends WebSocket {
     }
 }
 
-interface WSOptions {
-    debug?: boolean | string;
-    protocols?: string | string[];
-}
-
-window['logger'] = new Logger('Window');
 export class RTCConnection {
     constructor(options: RTCConnectionOptions, _options?: WSOptions) {
         this.connection = this.createConnection();
@@ -85,14 +91,12 @@ export class RTCConnection {
             camera: this.createDataChannel('CAMERA'),
             stream: this.createDataChannel('STREAM'),
         };
-        this.id;
         this.logger = new Logger('RTCConnection');
         this.ws = new WS(options.gateway, { debug: 'RTCConnection' });
         this.ws.addEventListener('message', async ({ data }) => {
             const message = await new Promise((resolve) => resolve(JSON.parse(data))).catch(() => data) as any;
 
-            if (message.event === 'ID') this.id = message.id;
-            else if (message.event === 'ANSWER') {
+            if (message.event === 'ANSWER') {
                 await this.connection.setRemoteDescription(message.sdp);
                 this.connection['candidates'].forEach(candidate => this.ws.send({
                     event: 'ICECANDIDATE',
@@ -103,7 +107,6 @@ export class RTCConnection {
     }
     public channels: Record<string, RTCDataChannel>;
     public connection: RTCPeerConnection;
-    public id: string;
     public logger: Logger;
     public ws: WS;
 
@@ -115,18 +118,7 @@ export class RTCConnection {
         });
 
         connection.addEventListener('datachannel', ({ channel }) => {
-            const destroy = () => {
-                this.channels[channel.label].close();
-                delete this.channels[channel.label];
-            }
-            this.channels[channel.label] = channel;
-            channel.addEventListener('close', destroy);
-            channel.addEventListener('error', destroy)
-            channel.addEventListener('open', () =>
-                channel.addEventListener('message', ({ data }) => {
-                    this.logger.debug(data);
-                })
-            );
+
         });
 
         connection.addEventListener('icecandidate', ({ candidate }) => candidate && connection['candidates'].push(candidate));
@@ -155,27 +147,32 @@ export class RTCConnection {
     }
 
     createDataChannel(label: string, dataChannelDict?: RTCDataChannelInit) {
-        const channel = this.connection.createDataChannel(label, dataChannelDict);
+        return this.handleDataChannel(this.connection.createDataChannel(label, dataChannelDict));
+    }
 
-        const destroy = () => {
-            this.channels[channel.label].close();
-            delete this.channels[channel.label];
-        }
-        channel.addEventListener('close', destroy);
-        channel.addEventListener('error', destroy)
-        channel.addEventListener('open', () => {
-            const audio = document.createElement('audio');
-            channel.addEventListener('message', ({ data }) => {
+    handleDataChannel(channel: RTCDataChannel, callbacks?: {
+        close?: (this: RTCDataChannel) => void; error?: (this: RTCDataChannel) => void; open?: (this: RTCDataChannel) => void;
+        message?: (this: RTCDataChannel, data?, origin?: string, ports?: readonly MessagePort[]) => void;
+    }) {
+        channel.bufferedAmountLowThreshold = 0;
+        channel.addEventListener('close', function () {
+            callbacks?.close.apply(channel);
+        });
 
-            })
+        channel.addEventListener('error', function () {
+            callbacks?.error.apply(channel);
+            channel.close();
+        });
+
+        channel.addEventListener('open', function () {
+            callbacks?.message.apply(channel);
+            channel.addEventListener('message', function ({ data, origin, ports }) {
+                callbacks?.message.apply(channel, [data, origin, ports]);
+            });
         });
 
         return channel;
     }
-}
-
-interface RTCConnectionOptions {
-    gateway: string;
 }
 
 export function injectClassNames(object: object) {
@@ -185,3 +182,6 @@ export function injectClassNames(object: object) {
                 element.classList.remove(key); element.classList.add(object[key]);
             }
 }
+
+window.AudioContext = window.AudioContext || window['webkitAudioContext'];
+window['logger'] = new Logger('Window');

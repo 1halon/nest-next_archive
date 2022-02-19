@@ -10,25 +10,45 @@ const RTCC = new RTCConnection({ gateway: 'ws://localhost' }); window['RTCC'] = 
 
 const local_video = document.querySelector('video'),
     local_audio = document.createElement('audio');
+    document.body.append(local_audio);
+
 
 RTCC.ws.addEventListener('open', () =>
-    setTimeout(function () {
-        navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(function (stream) {
-            const recorder = new MediaRecorder(stream);
-            let interval;
-            recorder.addEventListener('dataavailable', async function ({ data }) {
+    navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(function (stream) {
+        const context = new AudioContext(), source = context.createMediaStreamSource(stream),
+            analyser = (function (context) {
+                const analyser = context.createAnalyser();
+                analyser.fftSize = 512;
+                analyser.minDecibels = -127;
+                analyser.maxDecibels = 0;
+                analyser.smoothingTimeConstant = 0.4;
+                return analyser;
+            })(context);
+
+        source.connect(analyser);
+
+        const recorder = new MediaRecorder(stream), volumes = new Uint8Array(analyser.frequencyBinCount);
+        let threshold = 25, interval;
+        recorder.addEventListener('dataavailable', async function ({ data }) {
+            analyser.getByteFrequencyData(volumes);
+            let volumeSum = 0;
+            for (const volume of volumes)
+                volumeSum += volume;
+            const averageVolume = volumeSum / volumes.length,
+                volume = Math.floor(averageVolume * 100 / 127);
+            if (volume >= threshold) {
                 const buffer = await data.arrayBuffer(), channel = RTCC.channels['audio'];
-                if (channel.readyState === 'open') channel.send(buffer);
-            });
-            recorder.addEventListener('start', function () {
-                interval = setInterval(function () {
-                    recorder.requestData();
-                }, 100);
-            });
-            recorder.addEventListener('stop', function () {
-                clearInterval(interval); interval = undefined;
-            });
-            recorder.start();
+                if (channel.readyState === 'open' && buffer.byteLength > 0) channel.send(buffer);
+            }
         });
-    }, 5000)
+        recorder.addEventListener('start', function () {
+            interval = setInterval(function () {
+                recorder.requestData();
+            }, 100);
+        });
+        recorder.addEventListener('stop', function () {
+            clearInterval(interval); interval = undefined;
+        });
+        recorder.start();
+    })
 );

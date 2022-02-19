@@ -28,23 +28,6 @@ export class WrtcGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     this.clients[id] = client;
 
     const { wrtc: { candidates, channels, connection } } = client;
-
-    connection.addEventListener('datachannel', ({ channel }) => {
-      const destroy = () => {
-        channels[channel.label].close();
-        delete channels[channel.label];
-      }
-      channels[channel.label] = channel;
-      channel.addEventListener('close', destroy);
-      channel.addEventListener('error', destroy)
-      channel.addEventListener('open', () => {
-        channel.addEventListener('message', ({ data }) => {
-          channel.send(data);
-        });
-      });
-    })
-
-    ws.send(JSON.stringify({ event: 'ID', id }));
     ws.addEventListener('message', async function ({ data }) {
       const message = await new Promise((resolve) => resolve(JSON.parse(data.toString()))).catch(() => data.toString()) as any;
 
@@ -65,6 +48,6 @@ export class WrtcGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     });
   }
   handleDisconnect(ws: WebSocket) {
-
+    
   }
 }
