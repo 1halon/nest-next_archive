@@ -10,7 +10,8 @@ interface Client {
   wrtc: {
     candidates: RTCIceCandidate[];
     channels: Record<string, RTCDataChannel>;
-    connection: RTCPeerConnection
+    connection: RTCPeerConnection;
+    streams: MediaStream[];
   };
   ws: WebSocket;
 }
@@ -26,13 +27,14 @@ export class WrtcGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
   afterInit(server: Server) {
     this.clients = {};
+    //setInterval(() => console.log(Object.values(this.clients).map(client => client.wrtc)), 5000);
   }
   handleConnection(ws: WebSocket, ...args: any[]) {
     const id = randomUUID(),
-      client = { id, wrtc: { candidates: [], channels: {}, connection: new wrtc.RTCPeerConnection() }, ws } as Client;
+      client = { id, wrtc: { candidates: [], channels: {}, connection: new wrtc.RTCPeerConnection(), streams: [] }, ws } as Client;
     this.clients[id] = client;
 
-    const { wrtc: { candidates, connection } } = client;
+    const { wrtc: { candidates, connection, streams } } = client;
 
     connection.addEventListener('datachannel', ({ channel }) => {
       const channelName = `${channel.label}-${id}`;
@@ -56,12 +58,31 @@ export class WrtcGateway implements OnGatewayConnection, OnGatewayDisconnect, On
       })
     });
 
-    connection.addEventListener('icecandidate', function ({ candidate }) {
+    connection.addEventListener('icecandidate', ({ candidate }) => {
       if (candidate)
         if (connection.connectionState === 'connected')
           ws.send(JSON.stringify({ event: 'ICECANDIDATE', candidate }));
         else candidates.push(candidate);
     });
+
+    connection.addEventListener('track', ({ streams: _streams }) => {
+      streams.push(..._streams);
+      Object.values(this.clients)
+        .filter(client => client.id !== id)
+        .filter(client => client.wrtc.connection.connectionState === 'connected')
+        .map(client => client.wrtc.connection)
+        .forEach(connection => _streams
+          .forEach(stream => stream.getTracks()
+            .forEach(track => connection.addTrack(track, stream)))); // FIXME Tracks won't add to client's connection.
+    });
+
+    Object.values(this.clients)
+      .filter(client => client.id !== id)
+      .filter(client => client.wrtc.connection.connectionState === 'connected')
+      .map(client => client.wrtc.streams)
+      .forEach(streams => streams
+        .forEach(stream => stream.getTracks()
+          .forEach(track => connection.addTrack(track, stream)))); // FIXME Only 1 stream adds to client's connection.
 
     ws.addEventListener('message', async function ({ data }) {
       const message = await new Promise((resolve) => resolve(JSON.parse(data.toString()))).catch(() => data.toString()) as any;
@@ -80,6 +101,7 @@ export class WrtcGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     });
   }
   handleDisconnect(ws: WebSocket) {
-
+    const { id } = Object.values(this.clients).find(client => JSON.stringify(client.ws) === JSON.stringify(ws));
+    if (id) delete this.clients[id];
   }
 }

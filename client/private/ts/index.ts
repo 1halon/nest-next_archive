@@ -9,13 +9,12 @@ injectClassNames(styles.index);
 const RTCC = new RTCConnection({ gateway: 'ws://localhost' }); window['RTCC'] = RTCC;
 
 const local_video = document.querySelector('video'),
-    local_audio = document.createElement('audio');
-document.body.append(local_audio);
+    local_audio = document.querySelector('audio');
 
-import { Buffer } from 'buffer';
 RTCC.ws.addEventListener('open', () =>
     navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(function (stream) {
-        const context = new AudioContext(), source = context.createMediaStreamSource(stream),
+        RTCC.connection.addTrack(stream.getAudioTracks()[0], stream);
+        /*const context = new AudioContext(), source = context.createMediaStreamSource(stream),
             analyser = (function (context) {
                 const analyser = context.createAnalyser();
                 analyser.fftSize = 512;
@@ -51,6 +50,6 @@ RTCC.ws.addEventListener('open', () =>
         recorder.addEventListener('stop', function () {
             clearInterval(interval); interval = undefined;
         });
-        recorder.start();
+        recorder.start();*/
     })
 );

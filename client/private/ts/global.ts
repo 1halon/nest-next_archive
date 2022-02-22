@@ -77,9 +77,12 @@ export class RTCConnection {
     constructor(options: RTCConnectionOptions, _options?: WSOptions) {
         this.connection = this.createConnection();
         this.channels = {
-            audio: this.createDataChannel('audio'),
+            //audio: this.createDataChannel('audio'),
         };
         this.logger = new Logger('RTCConnection');
+        this.transceivers = {
+            audio: this.connection.addTransceiver('audio', { direction: 'recvonly' })
+        }
         this.ws = new WS(options.gateway, { debug: 'RTCConnection' });
         this.ws.addEventListener('message', async ({ data }) => {
             const message = await new Promise((resolve) => resolve(JSON.parse(data))).catch(() => data) as any;
@@ -97,6 +100,7 @@ export class RTCConnection {
     public channels: any;
     public connection: RTCPeerConnection;
     public logger: Logger;
+    public transceivers: any;
     public ws: WS;
 
     createConnection(configuration?: RTCConfiguration) {
@@ -117,22 +121,38 @@ export class RTCConnection {
                 }
             });
         });
-        connection.addEventListener('icecandidate', ({ candidate }) => candidate && connection['candidates'].push(candidate));
+        connection.addEventListener('icecandidate', ({ candidate }) => {
+            if (candidate)
+                if (connection.connectionState === 'connected')
+                    this.ws.send({ event: 'ICECANDIDATE', candidate });
+                else connection['candidates'].push(candidate);
+        });
         connection.addEventListener('iceconnectionstatechange', () => {
             this.logger.debug(`iceConnectionState => ${connection.iceConnectionState}`);
         });
         connection.addEventListener('icegatheringstatechange', () => {
             this.logger.debug(`iceGatheringState => ${connection.iceGatheringState}`);
         });
+        let negotiation_status = 'NEEDED'; 
         connection.addEventListener('negotiationneeded', async () => {
-            await this.connection.setLocalDescription(await connection.createOffer());
-            this.ws.send({
-                event: 'OFFER',
-                sdp: this.connection.localDescription
-            });
+            if (negotiation_status !== 'IN_PROGRESS') {
+                negotiation_status = 'IN_PROGRESS';
+                await this.connection.setLocalDescription(await connection.createOffer());
+                this.ws.send({
+                    event: 'OFFER',
+                    sdp: this.connection.localDescription
+                });
+                negotiation_status = 'DONE';
+            }
         });
         connection.addEventListener('signalingstatechange', () => {
             this.logger.debug(`signalingState => ${connection.signalingState}`);
+        });
+
+        connection.addEventListener('track', ({ streams, track }) => {
+            this.logger.debug({ args: [streams], message: '[STREAMS]' });
+            this.logger.debug({ args: [track], message: '[TRACK]' });
+            document.querySelector('audio').srcObject = streams[0];
         });
 
         return connection;
