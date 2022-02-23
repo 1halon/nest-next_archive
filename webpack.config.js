@@ -71,6 +71,13 @@ module.exports = (env, argv) => {
           test: /\.ts?$/,
           use: 'ts-loader'
         },
+        {
+          test: /\.worklet\.js$/,
+          loader: 'worklet-loader',
+          options: {
+            name: '[contenthash].js'
+          }
+        }
       ]
     },
     node: false,

@@ -141,7 +141,9 @@
         "webpack-cli": "^4.9.1",
         "webpack-obfuscator": "^3.5.0",
         "webpack-remove-empty-scripts": "^0.7.2",
-        "webpack-subresource-integrity": "^5.1.0"
+        "webpack-subresource-integrity": "^5.1.0",
+        "worker-loader": "^3.0.8",
+        "worklet-loader": "^2.0.0"
     },
     "jest": {
         "moduleFileExtensions": [

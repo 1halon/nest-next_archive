@@ -5,103 +5,47 @@ import wrtc from 'wrtc';
 import { createWriteStream } from 'fs';
 import { WrtcService } from './wrtc.service';
 
-interface Client {
-  id: string;
-  wrtc: {
-    candidates: RTCIceCandidate[];
-    channels: Record<string, RTCDataChannel>;
-    connection: RTCPeerConnection;
-    streams: MediaStream[];
-  };
-  ws: WebSocket;
-}
-
 @WebSocketGateway()
 export class WrtcGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
   constructor(
     private readonly wrtcService: WrtcService
   ) { };
 
-  private clients: Record<string, Client>;
   private readonly server: Server;
 
   afterInit(server: Server) {
-    this.clients = {};
-    //setInterval(() => console.log(Object.values(this.clients).map(client => client.wrtc)), 5000);
+
   }
+
   handleConnection(ws: WebSocket, ...args: any[]) {
-    const id = randomUUID(),
-      client = { id, wrtc: { candidates: [], channels: {}, connection: new wrtc.RTCPeerConnection(), streams: [] }, ws } as Client;
-    this.clients[id] = client;
+    const client = this.wrtcService.createClient(ws), { wrtc: { candidates, connection } } = client;
 
-    const { wrtc: { candidates, connection, streams } } = client;
-
-    connection.addEventListener('datachannel', ({ channel }) => {
-      const channelName = `${channel.label}-${id}`;
-      this.wrtcService.handleDataChannel(channel, {
-        global: () => {
-          Object.values(this.clients)
-            .filter(client => client.id !== id)
-            .forEach(client => {
-              const { wrtc: { channels, connection } } = client;
-              channels[channelName] = this.wrtcService.handleDataChannel(connection.createDataChannel(channelName));
-            });
-        },
-        message: (data) => {
-          if (!data || !(data instanceof ArrayBuffer)) return;
-          Object.values(this.clients)
-            .filter(client => client.id !== id)
-            .filter(client => client.wrtc.channels[channelName])
-            .map(client => client.wrtc.channels[channelName])
-            .forEach(channel => channel.readyState === 'open' && channel.send(data));
-        },
-      })
-    });
-
-    connection.addEventListener('icecandidate', ({ candidate }) => {
-      if (candidate)
-        if (connection.connectionState === 'connected')
-          ws.send(JSON.stringify({ event: 'ICECANDIDATE', candidate }));
-        else candidates.push(candidate);
-    });
-
-    connection.addEventListener('track', ({ streams: _streams }) => {
-      streams.push(..._streams);
-      Object.values(this.clients)
-        .filter(client => client.id !== id)
-        .filter(client => client.wrtc.connection.connectionState === 'connected')
-        .map(client => client.wrtc.connection)
-        .forEach(connection => _streams
-          .forEach(stream => stream.getTracks()
-            .forEach(track => connection.addTrack(track, stream)))); // FIXME Tracks won't add to client's connection.
-    });
-
-    Object.values(this.clients)
-      .filter(client => client.id !== id)
-      .filter(client => client.wrtc.connection.connectionState === 'connected')
-      .map(client => client.wrtc.streams)
-      .forEach(streams => streams
-        .forEach(stream => stream.getTracks()
-          .forEach(track => connection.addTrack(track, stream)))); // FIXME Only 1 stream adds to client's connection.
-
-    ws.addEventListener('message', async function ({ data }) {
+    ws.addEventListener('message', async ({ data }) => {
       const message = await new Promise((resolve) => resolve(JSON.parse(data.toString()))).catch(() => data.toString()) as any;
 
-      if (message.event === 'OFFER') {
+      if (message.event === 'ANSWER') {
         await connection.setRemoteDescription(message.sdp);
+        if (candidates.length > 0) ws.send(JSON.stringify({ event: 'BULK_ICECANDIDATES', candidates }));
+      }
+      else if (message.event === 'BULK_ICECANDIDATES')
+        message.candidates.forEach(candidate => connection.addIceCandidate(candidate).catch(e => void e));
+      else if (message.event === 'ICECANDIDATE')
+        connection.addIceCandidate(message.candidate).catch(e => void e);
+      else if (message.event === 'OFFER') {
+        const { id, sdp } = message;
+        if (!this.wrtcService.getClient(id)) {
+          client.id = id; this.wrtcService.saveClient(client, true);
+        }
+
+        await connection.setRemoteDescription(sdp).catch(e => void e);
         await connection.setLocalDescription(await connection.createAnswer());
-        ws.send(JSON.stringify({
-          event: 'ANSWER',
-          sdp: connection.localDescription
-        }));
-      } else if (message.event === 'ICECANDIDATE') {
-        connection.addIceCandidate(message.candidate);
-        candidates.forEach(candidate => ws.send(JSON.stringify({ event: 'ICECANDIDATE', candidate })));
+        ws.send(JSON.stringify({ event: 'ANSWER', sdp: connection.localDescription }));
+        if (candidates.length > 0) ws.send(JSON.stringify({ event: 'BULK_ICECANDIDATES', candidates }));
       }
     });
   }
+
   handleDisconnect(ws: WebSocket) {
-    const { id } = Object.values(this.clients).find(client => JSON.stringify(client.ws) === JSON.stringify(ws));
-    if (id) delete this.clients[id];
+    this.wrtcService.deleteClient(this.wrtcService.getClient(ws, true)?.id);
   }
 }

@@ -1,3 +1,5 @@
+import { v4 } from 'uuid';
+
 export class Logger {
     constructor(title?: string) {
         this.title = title;
@@ -75,32 +77,36 @@ export class WS extends WebSocket {
 }
 export class RTCConnection {
     constructor(options: RTCConnectionOptions, _options?: WSOptions) {
+        this.audio_context = new AudioContext();
         this.connection = this.createConnection();
-        this.channels = {
-            //audio: this.createDataChannel('audio'),
-        };
+        this.id = v4();
         this.logger = new Logger('RTCConnection');
-        this.transceivers = {
-            audio: this.connection.addTransceiver('audio', { direction: 'recvonly' })
-        }
         this.ws = new WS(options.gateway, { debug: 'RTCConnection' });
         this.ws.addEventListener('message', async ({ data }) => {
             const message = await new Promise((resolve) => resolve(JSON.parse(data))).catch(() => data) as any;
 
             if (message.event === 'ANSWER') {
                 await this.connection.setRemoteDescription(message.sdp);
-                this.connection['candidates'].forEach(candidate => this.ws.send({
-                    event: 'ICECANDIDATE',
-                    candidate
-                }));
-            } else if (message.event === 'ICECANDIDATE') this.connection.addIceCandidate(message.candidate);
+                this.ws.send({ id: this.id, event: 'BULK_ICECANDIDATES', candidates: this.connection['candidates'] });
+            }
+            else if (message.event === 'BULK_ICECANDIDATES')
+                message.candidates.forEach(candidate => this.connection.addIceCandidate(candidate).catch(e => void e));
+            else if (message.event === 'ICECANDIDATE')
+                this.connection.addIceCandidate(message.candidate).catch(e => void e);
+            else if (message.event === 'OFFER') {
+                await this.connection.setRemoteDescription(message.sdp).catch(e => void e);
+                await this.connection.setLocalDescription(await this.connection.createAnswer());
+                this.ws.send({ event: 'ANSWER', sdp: this.connection.localDescription });
+                if (this.connection['candidates'].length > 0)
+                    this.ws.send({ event: 'BULK_ICECANDIDATES', candidates: this.connection['candidates'] });
+            }
         });
     };
 
-    public channels: any;
+    public audio_context: AudioContext;
     public connection: RTCPeerConnection;
+    public id: string;
     public logger: Logger;
-    public transceivers: any;
     public ws: WS;
 
     createConnection(configuration?: RTCConfiguration) {
@@ -109,22 +115,10 @@ export class RTCConnection {
         connection.addEventListener('connectionstatechange', () => {
             this.logger.debug(`connectionState => ${connection.connectionState}`);
         });
-        connection.addEventListener('datachannel', ({ channel }) => {
-            console.log(channel);
-            this.channels[channel.label] = this.handleDataChannel(channel, {
-                close() {
-
-                },
-                message(data) {
-                    if (!data) return;
-                    const audio = document.querySelector('audio');
-                }
-            });
-        });
         connection.addEventListener('icecandidate', ({ candidate }) => {
             if (candidate)
                 if (connection.connectionState === 'connected')
-                    this.ws.send({ event: 'ICECANDIDATE', candidate });
+                    this.ws.send({ id: this.id, event: 'ICECANDIDATE', candidate });
                 else connection['candidates'].push(candidate);
         });
         connection.addEventListener('iceconnectionstatechange', () => {
@@ -133,15 +127,12 @@ export class RTCConnection {
         connection.addEventListener('icegatheringstatechange', () => {
             this.logger.debug(`iceGatheringState => ${connection.iceGatheringState}`);
         });
-        let negotiation_status = 'NEEDED'; 
+        let negotiation_status = 'NEEDED';
         connection.addEventListener('negotiationneeded', async () => {
             if (negotiation_status !== 'IN_PROGRESS') {
                 negotiation_status = 'IN_PROGRESS';
                 await this.connection.setLocalDescription(await connection.createOffer());
-                this.ws.send({
-                    event: 'OFFER',
-                    sdp: this.connection.localDescription
-                });
+                this.ws.send({ id: this.id, event: 'OFFER', sdp: this.connection.localDescription });
                 negotiation_status = 'DONE';
             }
         });
@@ -149,37 +140,11 @@ export class RTCConnection {
             this.logger.debug(`signalingState => ${connection.signalingState}`);
         });
 
-        connection.addEventListener('track', ({ streams, track }) => {
-            this.logger.debug({ args: [streams], message: '[STREAMS]' });
-            this.logger.debug({ args: [track], message: '[TRACK]' });
-            document.querySelector('audio').srcObject = streams[0];
+        connection.addEventListener('track', ({ streams }) => {
+
         });
 
         return connection;
-    }
-
-    createDataChannel(label: string, dataChannelDict?: RTCDataChannelInit, callbacks?: HandleDataChannelCallbacks) {
-        return this.handleDataChannel(this.connection.createDataChannel(label, dataChannelDict), callbacks);
-    }
-
-    handleDataChannel(channel: RTCDataChannel, callbacks?: HandleDataChannelCallbacks) {
-        channel.bufferedAmountLowThreshold = 0;
-        callbacks?.global?.apply(channel);
-        channel.addEventListener('close', function () {
-            callbacks?.close?.apply(channel);
-        });
-        channel.addEventListener('error', function () {
-            callbacks?.error?.apply(channel);
-            channel.close();
-        });
-        channel.addEventListener('message', function ({ data, origin, ports }) {
-            callbacks?.message?.apply(channel, [data, origin, ports]);
-        });
-        channel.addEventListener('open', function () {
-            callbacks?.message?.apply(channel);
-        });
-
-        return channel;
     }
 }
 

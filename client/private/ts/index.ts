@@ -1,4 +1,5 @@
 import { injectClassNames, RTCConnection, WS } from '../ts/global';
+import LevelProcessorURL from '../js/level-processor.worklet.js';
 
 const styles = {
     global: require('../styles/global.scss'),
@@ -13,7 +14,16 @@ const local_video = document.querySelector('video'),
 
 RTCC.ws.addEventListener('open', () =>
     navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(function (stream) {
-        RTCC.connection.addTrack(stream.getAudioTracks()[0], stream);
+        const receiver = RTCC.connection.addTransceiver(stream.getAudioTracks()[0], { direction: 'sendonly', streams: [stream] });
+
+        (async function () {
+            const context = new AudioContext(), source = context.createMediaStreamSource(stream);
+            await context.audioWorklet.addModule(LevelProcessorURL);
+            const node = new AudioWorkletNode(context, 'level-processor');
+
+            source.connect(node).connect(context.destination);
+        })()
+
         /*const context = new AudioContext(), source = context.createMediaStreamSource(stream),
             analyser = (function (context) {
                 const analyser = context.createAnalyser();
@@ -22,14 +32,14 @@ RTCC.ws.addEventListener('open', () =>
                 analyser.maxDecibels = 0;
                 analyser.smoothingTimeConstant = 0.4;
                 return analyser;
-            })(context);
+            })(context), volumes = new Uint8Array(analyser.frequencyBinCount);
 
         source.connect(analyser);
 
-        const recorder = new MediaRecorder(stream), volumes = new Uint8Array(analyser.frequencyBinCount);
+        await context.audioWorklet.addModule(LevelProcessorURL);
+
         let threshold = 25, interval;
-        recorder.addEventListener('dataavailable', async function ({ data }) {
-            if (!data.size) return;
+        interval = setInterval(() => {
             analyser.getByteFrequencyData(volumes);
             let volumeSum = 0;
             for (const volume of volumes)
@@ -37,19 +47,8 @@ RTCC.ws.addEventListener('open', () =>
             const averageVolume = volumeSum / volumes.length,
                 volume = Math.floor(averageVolume * 100 / 127);
             if (volume >= threshold) {
-                const buffer = await data.arrayBuffer(), channel = RTCC.channels['AUDIO'];
-                console.log(buffer);
-                if (channel.readyState === 'open') channel.send(buffer);
+                RTCC.logger.debug('SPEAKING')
             }
-        });
-        recorder.addEventListener('start', function () {
-            interval = setInterval(function () {
-                recorder.requestData();
-            }, 100);
-        });
-        recorder.addEventListener('stop', function () {
-            clearInterval(interval); interval = undefined;
-        });
-        recorder.start();*/
+        }, 100);*/
     })
 );
