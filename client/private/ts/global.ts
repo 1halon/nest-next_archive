@@ -51,7 +51,8 @@ export class Logger {
 export class WS extends WebSocket {
     constructor(url: string | URL, options?: WSOptions) {
         super(url, options?.protocols ?? []);
-        this.options = options ?? {} as WSOptions;
+        this.events = {};
+        this.options = this.#options(options);
         if (this.options.debug) {
             const start = Date.now();
             this.logger = new Logger(`WS${typeof options?.debug === 'string' && options?.debug !== '' ? `<${options?.debug}>` : ''}`);
@@ -62,45 +63,70 @@ export class WS extends WebSocket {
                 this.logger.debug('[RECEIVE]', [await new Promise((resolve) => resolve(JSON.parse(data))).catch(() => data) as any]));
             this.addEventListener('open', () => this.logger.debug(`[CONNECTED] ${url} in ${Date.now() - start} ms`));
         }
+
+        this.addEventListener('message', async ({ data }) => {
+            const message = await new Promise((resolve) => resolve(JSON.parse(data))).catch(() => data) as any;
+
+            !Array.isArray(message)
+                && typeof message === 'object'
+                && typeof message.event === 'string'
+                && this.events.hasOwnProperty(message.event)
+                && message.hasOwnProperty('data')
+                && this.events[message.event](message.data);
+        });
     }
+
+    private events: any;
     public logger: Logger | null;
     public options: WSOptions;
+
+    #options(options: WSOptions) {
+        if (Array.isArray(options) || typeof options !== 'object') options = {};
+        if (typeof options.debug !== 'boolean' || typeof options.debug !== 'string') Object.defineProperty(options, 'debug', { value: false });
+        if (Array.isArray(options.protocols) || typeof options.protocols !== 'string') Object.defineProperty(options, 'protocols', { value: [] });
+
+        return options;
+    }
+
     close(code?: number, reason?: string): void {
-        if (this.options.debug) this.logger.debug(`[CLOSED] ${{ code, reason }}`);
+        if (this.options.debug) this.logger.debug(`[CLOSED] ${this.url}`);
         WebSocket.prototype.send.apply(this, [code, reason]);
     }
+
+    on<T extends keyof WSEvents>(event: T, handler: (data: WSEvents[T]) => void) {
+        this.events[event] = handler;
+    }
+
     send(data: string | object | ArrayBufferLike | Blob | ArrayBufferView): void {
         if (this.options.debug) this.logger.debug('[SEND]', [data]);
-        if (typeof data === 'object') try { data = JSON.stringify(data); } catch (error) { }
+        if (typeof data === 'object') data = JSON.stringify(data);
         WebSocket.prototype.send.apply(this, [data]);
     }
 }
+
+interface WSEvents {
+    ANSWER: { sdp: RTCSessionDescriptionInit };
+    'BULK_ICECANDIDATES': { candidates: RTCIceCandidateInit[] };
+    ICECANDIDATE: { candidate: RTCIceCandidate };
+    OFFER: { sdp: RTCSessionDescriptionInit };
+}
+
 export class RTCConnection {
-    constructor(options: RTCConnectionOptions, _options?: WSOptions) {
-        this.audio_context = new AudioContext();
+    constructor(options: RTCConnectionOptions, ws_options?: WSOptions) {
+        this.audio_context;
         this.connection = this.createConnection();
         this.id = v4();
         this.logger = new Logger('RTCConnection');
-        this.ws = new WS(options.gateway, { debug: 'RTCConnection' });
-        this.ws.addEventListener('message', async ({ data }) => {
-            const message = await new Promise((resolve) => resolve(JSON.parse(data))).catch(() => data) as any;
+        this.ws = new WS(options.gateway, Object.assign(ws_options ?? {}, { debug: 'RTCConnection' }));
 
-            if (message.event === 'ANSWER') {
-                await this.connection.setRemoteDescription(message.sdp);
-                this.ws.send({ id: this.id, event: 'BULK_ICECANDIDATES', candidates: this.connection['candidates'] });
-            }
-            else if (message.event === 'BULK_ICECANDIDATES')
-                message.candidates.forEach(candidate => this.connection.addIceCandidate(candidate).catch(e => void e));
-            else if (message.event === 'ICECANDIDATE')
-                this.connection.addIceCandidate(message.candidate).catch(e => void e);
-            else if (message.event === 'OFFER') {
-                await this.connection.setRemoteDescription(message.sdp).catch(e => void e);
-                await this.connection.setLocalDescription(await this.connection.createAnswer());
-                this.ws.send({ event: 'ANSWER', sdp: this.connection.localDescription });
-                if (this.connection['candidates'].length > 0)
-                    this.ws.send({ event: 'BULK_ICECANDIDATES', candidates: this.connection['candidates'] });
-            }
-        });
+        this.ws.on('ANSWER', async ({ sdp }) => await this.connection.setRemoteDescription(sdp).catch(e => void e));
+        this.ws.on('BULK_ICECANDIDATES', async ({ candidates }) =>
+            candidates.forEach(async candidate => await this.connection.addIceCandidate(candidate).catch(e => void e)));
+        this.ws.on('ICECANDIDATE', async ({ candidate }) => await this.connection.addIceCandidate(candidate).catch(e => void e));
+        this.ws.on('OFFER', async ({ sdp }) => this.connection.setRemoteDescription(sdp).then(async () => {
+            await this.connection.setLocalDescription(await this.connection.createAnswer());
+            this.ws.send({ event: 'ANSWER', data: { sdp: this.connection.localDescription } });
+        }));
     };
 
     public audio_context: AudioContext;
@@ -110,38 +136,27 @@ export class RTCConnection {
     public ws: WS;
 
     createConnection(configuration?: RTCConfiguration) {
-        const connection = new RTCPeerConnection(configuration); connection['candidates'] = [];
+        const connection = new RTCPeerConnection(configuration), candidates = [];
 
-        connection.addEventListener('connectionstatechange', () => {
-            this.logger.debug(`connectionState => ${connection.connectionState}`);
+        connection.addEventListener('datachannel', async () => {
+            // TODO
         });
-        connection.addEventListener('icecandidate', ({ candidate }) => {
-            if (candidate)
-                if (connection.connectionState === 'connected')
-                    this.ws.send({ id: this.id, event: 'ICECANDIDATE', candidate });
-                else connection['candidates'].push(candidate);
-        });
-        connection.addEventListener('iceconnectionstatechange', () => {
-            this.logger.debug(`iceConnectionState => ${connection.iceConnectionState}`);
-        });
-        connection.addEventListener('icegatheringstatechange', () => {
-            this.logger.debug(`iceGatheringState => ${connection.iceGatheringState}`);
-        });
-        let negotiation_status = 'NEEDED';
+        connection.addEventListener('icecandidate', async ({ candidate }) =>
+            candidate &&
+                connection.connectionState === 'connected' ?
+                this.ws.send({ event: 'ICECANDIDATE', data: { candidate } }) :
+                candidates.push(candidate));
+        let negotiation_status = false;
         connection.addEventListener('negotiationneeded', async () => {
-            if (negotiation_status !== 'IN_PROGRESS') {
-                negotiation_status = 'IN_PROGRESS';
-                await this.connection.setLocalDescription(await connection.createOffer());
-                this.ws.send({ id: this.id, event: 'OFFER', sdp: this.connection.localDescription });
-                negotiation_status = 'DONE';
+            if (!negotiation_status) {
+                negotiation_status = true;
+                await this.connection.setLocalDescription(await this.connection.createOffer());
+                this.ws.send({ event: 'OFFER', data: { sdp: this.connection.localDescription } });
+                negotiation_status = false;
             }
         });
-        connection.addEventListener('signalingstatechange', () => {
-            this.logger.debug(`signalingState => ${connection.signalingState}`);
-        });
-
-        connection.addEventListener('track', ({ streams }) => {
-
+        connection.addEventListener('track', async ({ streams }) => {
+            //TODO
         });
 
         return connection;
@@ -154,6 +169,15 @@ export function injectClassNames(object: object) {
             for (const element of [...document.getElementsByClassName(key)]) {
                 element.classList.remove(key); element.classList.add(object[key]);
             }
+}
+
+interface WSOptions {
+    debug?: boolean | string;
+    protocols?: string | string[];
+}
+
+interface RTCConnectionOptions {
+    gateway: string;
 }
 
 window.AudioContext = window.AudioContext || window['webkitAudioContext'];

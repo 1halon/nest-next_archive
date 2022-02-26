@@ -23,41 +23,6 @@ export class WrtcService {
             ws
         } as Client, { wrtc: { candidates, connection, streams } } = client;
 
-        connection.addEventListener('icecandidate', ({ candidate }) => {
-            if (candidate)
-                if (connection.connectionState === 'connected')
-                    ws.send(JSON.stringify({ event: 'ICECANDIDATE', candidate }));
-                else candidates.push(candidate);
-        });
-        let negotiation_status = 'NEEDED';
-        connection.addEventListener('negotiationneeded', async () => {
-            if (negotiation_status !== 'IN_PROGRESS') {
-                negotiation_status = 'IN_PROGRESS';
-                await connection.setLocalDescription(await connection.createOffer());
-                ws.send(JSON.stringify({ id: id, event: 'OFFER', sdp: connection.localDescription }));
-                negotiation_status = 'DONE';
-            }
-        });
-        connection.addEventListener('track', ({ streams: _streams }) => {
-            streams.push(..._streams);
-            Object.values(this.clients)
-                .filter(client => client.id !== id)
-                .filter(client => client.wrtc.connection.connectionState === 'connected')
-                .map(client => client.wrtc.connection)
-                .forEach(connection => _streams
-                    .forEach(stream => stream.getTracks()
-                        .forEach(track =>
-                            connection.addTransceiver(track, { direction: 'sendonly', streams: [stream] }))));
-        });
-
-        Object.values(this.clients)
-            .filter(client => client.id !== id)
-            .filter(client => client.wrtc.connection.connectionState === 'connected')
-            .map(client => client.wrtc.streams)
-            .forEach(streams => streams
-                .forEach(stream => stream.getTracks()
-                    .forEach(track => connection.addTransceiver(track, { direction: 'sendonly', streams: [stream] }))));
-
         return client;
     }
 

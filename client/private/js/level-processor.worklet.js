@@ -3,20 +3,15 @@ registerProcessor('level-processor', class extends AudioWorkletProcessor {
         super();
     }
 
-    static get parameterDescriptors() {
-        return [
-            {
-                name: "gain",
-                defaultValue: 0.25,
-                minValue: 0,
-                maxValue: 1
-            },
-        ];
-    }
-
     process(inputList, outputList, parameters) {
-        /* using the inputs (or not, as needed), write the output
-           into each of the outputs */
+        const input = inputList[0][0];
+
+        let sum = 0.0;
+        for (let i = 0; i < input.length; ++i) {
+            sum += input[i] * input[i];
+        }
+
+        this.port.postMessage(sum / input.length);
 
         return true;
     }
