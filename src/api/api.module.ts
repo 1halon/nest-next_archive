@@ -21,7 +21,7 @@ export class ApiModule {
             imports: [
                 JwtModule.register({
                     secret: process.env.JWT_SECRET,
-                    signOptions: { expiresIn: '16h' },
+                    //signOptions: { expiresIn: '16h' },
                     verifyOptions: { ignoreExpiration: false }
                 }),
             ],

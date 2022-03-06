@@ -4,12 +4,13 @@ import { AppModule, NotFoundExceptionFilter } from './app.module';
 import { join } from 'path';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
-import { WsAdapter } from '@nestjs/platform-ws'
-import { readFileSync } from 'fs';
+import limiter from 'express-rate-limit';
+import requestIP from 'request-ip';
+import userAgent from 'express-useragent';
+import { WsAdapter } from '@nestjs/platform-ws';
 
 NestFactory.create<NestExpressApplication>(AppModule).then(function (app) {
   app.getHttpAdapter().useStaticAssets(join(process.cwd(), 'client/public'), { prefix: '/assets/' });
-  app.disable('x-powered-by');
   app.enableCors({
     allowedHeaders: 'Accept,Authorization,Content-Type',
     credentials: true,
@@ -17,7 +18,18 @@ NestFactory.create<NestExpressApplication>(AppModule).then(function (app) {
     origin: true
   });
   app.use(cookieParser(process.env.COOKIE_SECRET));
-  //app.use(helmet());
+  /*app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        'default-src': "'self'",
+        'style-src-elem': ["'self'", 'https://fonts.googleapis.com']
+      }
+    },
+    dnsPrefetchControl: { allow: true }
+  }));*/
+  //app.use(limiter());
+  app.use(requestIP.mw());
+  app.use(userAgent.express());
   //app.useGlobalFilters(new NotFoundExceptionFilter());
   app.useWebSocketAdapter(new WsAdapter(app));
   app.listen(80);

@@ -50,10 +50,10 @@ import { WrtcModule } from './wrtc/wrtc.module';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    /*consumer.apply(AppMiddleware).forRoutes({
+    consumer.apply(AppMiddleware).forRoutes({
       path: '/*',
       method: RequestMethod.ALL
-    })*/
+    })
   }
 }
 
