@@ -5,54 +5,66 @@
     align-items: center;
     justify-content: center;
     width: 100%;
-    min-height: 6rem;
-    background: global.$background-secondary;
+    min-height: 8rem;
+    //background: global.$background-secondary;
 
     .container {
-        display: grid;
+        display: flex;
         align-items: center;
-        justify-content: space-evenly;
-        grid-template-columns: 25% 50% 25%;
-        width: 95%;
-        min-height: 3rem;
+        justify-content: center;
+        width: 75%;
+        min-height: 4rem;
+        border: 2px solid white;
+        border-radius: 2rem;
+        background: global.$background-secondary;
 
-        div,
-        a {
-            display: flex;
+        .wrapper {
+            display: grid;
             align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100%;
-        }
-
-        .logo {
-            font-size: 24px;
-            font-weight: 700;
-        }
-
-        .links {
             justify-content: space-evenly;
+            grid-template-columns: 25% 50% 25%;
+            width: 100%;
+            min-height: inherit;
 
-            .link {
-                color: white;
-            }
-        }
-
-        .login {
-            .button {
-                width: 6rem;
-                height: 2.5rem;
-                border-radius: 2rem;
-                background: white;
-                color: black;
-                font-weight: 500;
-                text-align: center;
-                cursor: pointer;
-                transition: 0.5s;
+            a,
+            div {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                height: 100%;
+                font-size: 18px;
             }
 
-            .button:hover {
-                box-shadow: -4px 4px;
+            .logo {
+                font-size: 24px;
+                font-weight: 700;
+            }
+
+            .links {
+                justify-content: space-evenly;
+
+                .link {
+                    color: white;
+                }
+            }
+
+            .login {
+                .button {
+                    width: 6rem;
+                    height: 2.5rem;
+                    border-radius: 2rem;
+                    background: white;
+                    color: black;
+                    font-weight: 500;
+                    text-align: center;
+                    cursor: pointer;
+                    transition: 0.25s;
+                }
+
+                .button:hover {
+                    box-shadow: 4px 4px;
+                }
             }
         }
     }

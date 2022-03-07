@@ -48,11 +48,23 @@ export class Logger {
     warn() { console.warn.apply(this, arguments); }
 }
 
+interface WSEventMap {
+    ANSWER: { sdp: RTCSessionDescriptionInit };
+    'BULK_ICECANDIDATES': { candidates: RTCIceCandidateInit[] };
+    ICECANDIDATE: { candidate: RTCIceCandidate };
+    OFFER: { sdp: RTCSessionDescriptionInit };
+}
+
+interface WSOptions {
+    debug?: boolean | string;
+    protocols?: string | string[];
+}
+
 export class WS extends WebSocket {
     constructor(url: string | URL, options?: WSOptions) {
         super(url, options?.protocols ?? []);
         this.events = {};
-        this.options = this.#options(options);
+        Object.defineProperty(this, 'options', { value: this.#options(options), writable: false });
         if (this.options.debug) {
             const start = Date.now();
             this.logger = new Logger(`WS${typeof options?.debug === 'string' && options?.debug !== '' ? `<${options?.debug}>` : ''}`);
@@ -78,13 +90,15 @@ export class WS extends WebSocket {
 
     private events: any;
     public logger: Logger | null;
-    public options: WSOptions;
+    private readonly options: WSOptions;
 
     #options(options: WSOptions) {
-        if (Array.isArray(options) || typeof options !== 'object') options = {};
-        if (typeof options.debug !== 'boolean' || typeof options.debug !== 'string') Object.defineProperty(options, 'debug', { value: false });
-        if (Array.isArray(options.protocols) || typeof options.protocols !== 'string') Object.defineProperty(options, 'protocols', { value: [] });
-
+        const default_options = { debug: false, protocols: [] } as WSOptions;
+        if (Array.isArray(options) || typeof options !== 'object') options = default_options;
+        if (typeof options.debug !== 'boolean' || typeof options.debug !== 'string') options.debug = default_options.debug;
+        Object.defineProperty(options, 'debug', { value: options.debug, writable: false });
+        if (Array.isArray(options.protocols) || typeof options.protocols !== 'string') options.protocols = default_options.protocols;
+        Object.defineProperty(options, 'protocols', { value: options.protocols, writable: false });
         return options;
     }
 
@@ -93,7 +107,7 @@ export class WS extends WebSocket {
         WebSocket.prototype.send.apply(this, [code, reason]);
     }
 
-    on<T extends keyof WSEvents>(event: T, handler: (data: WSEvents[T]) => void) {
+    on<T extends keyof WSEventMap>(event: T, handler: (data: WSEventMap[T]) => void) {
         this.events[event] = handler;
     }
 
@@ -104,21 +118,61 @@ export class WS extends WebSocket {
     }
 }
 
-interface WSEvents {
-    ANSWER: { sdp: RTCSessionDescriptionInit };
-    'BULK_ICECANDIDATES': { candidates: RTCIceCandidateInit[] };
-    ICECANDIDATE: { candidate: RTCIceCandidate };
-    OFFER: { sdp: RTCSessionDescriptionInit };
+interface AudioInfo {
+    dB: number;
+    dB_difference: number;
+    last_dB: number;
+    last_dBs: number[] | [number, number, number, number, number];
+    speaking: boolean;
+    thresholds: { dynamic: number, static: number };
+}
+
+interface RTCCOptions {
+    gateway: string;
+    transport?: 'DATACHANNEL' | 'DEFAULT';
+}
+
+interface Audio {
+    _: {
+        analyser: AnalyserNode;
+        duplicated_track: MediaStreamTrack;
+        func: Function;
+        interval: number | typeof setInterval;
+        source: MediaStreamAudioSourceNode;
+        stream: MediaStream;
+        track: MediaStreamTrack;
+    }
+    context: AudioContext;
+    info: AudioInfo
 }
 
 export class RTCConnection {
-    constructor(options: RTCConnectionOptions, ws_options?: WSOptions) {
-        this.audio_context;
+    constructor(options: RTCCOptions, ws_options?: WSOptions) {
+        this.audio = {
+            _: {
+                analyser: null,
+                duplicated_track: null,
+                func: null,
+                interval: null,
+                source: null,
+                stream: null,
+                track: null
+            },
+            context: null,
+            info: {
+                dB: -100,
+                dB_difference: 0,
+                last_dB: -100,
+                last_dBs: new Array(5).fill(-100, 0, 5),
+                speaking: false,
+                thresholds: { dynamic: -60, static: -60 }
+            }
+        };
         this.connection = this.createConnection();
-        this.id = v4();
+        Object.defineProperty(this, 'id', { value: v4(), writable: false });
         this.logger = new Logger('RTCConnection');
+        Object.defineProperty(this, 'options', { value: this.#options(options), writable: false });
         this.ws = new WS(options.gateway, Object.assign(ws_options ?? {}, { debug: 'RTCConnection' }));
-
         this.ws.on('ANSWER', async ({ sdp }) => await this.connection.setRemoteDescription(sdp).catch(e => void e));
         this.ws.on('BULK_ICECANDIDATES', async ({ candidates }) =>
             candidates.forEach(async candidate => await this.connection.addIceCandidate(candidate).catch(e => void e)));
@@ -126,14 +180,65 @@ export class RTCConnection {
         this.ws.on('OFFER', async ({ sdp }) => this.connection.setRemoteDescription(sdp).then(async () => {
             await this.connection.setLocalDescription(await this.connection.createAnswer());
             this.ws.send({ event: 'ANSWER', data: { sdp: this.connection.localDescription } });
-        }));
+        }).catch(e => void e));
+        this.createAudio();
     };
 
-    public audio_context: AudioContext;
+    public audio: Audio;
     public connection: RTCPeerConnection;
     public id: string;
     public logger: Logger;
+    private readonly options: RTCCOptions;
     public ws: WS;
+
+    #options(options: RTCCOptions) {
+        const default_options = { transport: 'DEFAULT' } as RTCCOptions;
+        if (Array.isArray(options) || typeof options !== 'object') options = default_options;
+        if (typeof options.gateway !== 'string' || options.gateway === '') throw new Error('INVALID_GATEWAY');
+        Object.defineProperty(options, 'gateway', { value: options.gateway, writable: false });
+        if (typeof options.transport !== 'string' || options.transport !== 'DATACHANNEL' || options.transport === 'DATACHANNEL')
+            options.transport = default_options.transport;
+        Object.defineProperty(options, 'transport', { value: options.transport, writable: false });
+        return options;
+    }
+
+    createAudio() {
+        navigator.mediaDevices.getUserMedia({ audio: true }).then((_stream => {
+            let { audio: { _, info } } = this; this.audio.context = new AudioContext();
+            _.analyser = this.audio.context.createAnalyser(); _.analyser.channelCount = 1; _.analyser.fftSize = 64; _.analyser.maxDecibels = 0; _.analyser.smoothingTimeConstant = .5;
+            _.func = () => {
+                const byteFrequencies = new Uint8Array(1), { maxDecibels, minDecibels } = _.analyser;
+                _.analyser.getByteFrequencyData(byteFrequencies);
+
+                info.dB = Number((minDecibels + ((maxDecibels - minDecibels) * byteFrequencies[0] / 255)).toFixed());
+                info.last_dB = Number((info.last_dBs.reduce((prev, current) => prev + current, 0) / (info.last_dBs.length)).toFixed());
+                if (info.last_dBs.length === 5) info.last_dBs.shift(); info.last_dBs.push(info.dB);
+
+                info.dB_difference = Math.abs(info.last_dB - info.dB);
+                info.thresholds['dynamic'] = info.thresholds['static'] - info.dB_difference;
+
+                if (info.dB > info.thresholds['dynamic']) info.speaking = true;
+                else info.speaking = false;
+
+                return;
+                document.querySelector('.test').innerHTML =
+                    `dB = ${info.dB}
+                Last dB = ${info.last_dB}
+                Last dBs = ${info.last_dBs.join(' / ')}
+                Difference = ${info.dB_difference}
+                Dynamic Threshold = ${info.thresholds['dynamic']}
+                Static Threshold = ${info.thresholds['static']}
+                Speaking = ${info.speaking}
+                `.split('\n').join('</br>');
+            }
+            _.interval = setInterval(_.func, 5e2);
+            _.source = this.audio.context.createMediaStreamSource(_stream);
+            _.stream = _stream;
+            _.track = _.stream.getAudioTracks()[0];
+            _.duplicated_track = _.track.clone();
+            _.source.connect(_.analyser);
+        })).catch(e => void e);
+    }
 
     createConnection(configuration?: RTCConfiguration) {
         const connection = new RTCPeerConnection(configuration), candidates = [];
@@ -169,15 +274,6 @@ export function injectClassNames(object: object) {
             for (const element of [...document.getElementsByClassName(key)]) {
                 element.classList.remove(key); element.classList.add(object[key]);
             }
-}
-
-interface WSOptions {
-    debug?: boolean | string;
-    protocols?: string | string[];
-}
-
-interface RTCConnectionOptions {
-    gateway: string;
 }
 
 window.AudioContext = window.AudioContext || window['webkitAudioContext'];

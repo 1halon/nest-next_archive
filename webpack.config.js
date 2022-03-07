@@ -165,6 +165,7 @@ module.exports = (env, argv) => {
         chunks: ['auth'],
         filename: 'auth.html',
         ...html_webpack_plugin_options,
+        template: path.join(VIEWS_DIR, 'auth.html'),
         title: 'Meet | Authorization'
       }),
       new HtmlWebpackPlugin({

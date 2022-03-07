@@ -7,6 +7,7 @@ declare namespace IndexScssNamespace {
     login: string;
     logo: string;
     nav: string;
+    wrapper: string;
   }
 }
 
