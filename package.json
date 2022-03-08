@@ -43,6 +43,7 @@
         "@types/multer-s3": "^2.7.11",
         "@types/smtp-server": "^3.5.7",
         "@types/uuid": "^8.3.3",
+        "@types/webaudioapi": "^0.0.27",
         "argon2": "^0.28.3",
         "aws-sdk": "^2.1064.0",
         "bcrypt": "^5.0.1",

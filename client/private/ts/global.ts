@@ -164,14 +164,14 @@ export class RTCConnection {
                 dB_difference: 0,
                 last_dB: -100,
                 last_dBs: new Array(5).fill(-100, 0, 5),
-                speaking: false,
+                speaking: !1,
                 thresholds: { dynamic: -60, static: -60 }
             }
         };
         this.connection = this.createConnection();
-        Object.defineProperty(this, 'id', { value: v4(), writable: false });
+        Object.defineProperty(this, 'id', { value: v4(), writable: !1 });
         this.logger = new Logger('RTCConnection');
-        Object.defineProperty(this, 'options', { value: this.#options(options), writable: false });
+        Object.defineProperty(this, 'options', { value: this.#options(options), writable: !1 });
         this.ws = new WS(options.gateway, Object.assign(ws_options ?? {}, { debug: 'RTCConnection' }));
         this.ws.on('ANSWER', async ({ sdp }) => await this.connection.setRemoteDescription(sdp).catch(e => void e));
         this.ws.on('BULK_ICECANDIDATES', async ({ candidates }) =>
@@ -195,17 +195,17 @@ export class RTCConnection {
         const default_options = { transport: 'DEFAULT' } as RTCCOptions;
         if (Array.isArray(options) || typeof options !== 'object') options = default_options;
         if (typeof options.gateway !== 'string' || options.gateway === '') throw new Error('INVALID_GATEWAY');
-        Object.defineProperty(options, 'gateway', { value: options.gateway, writable: false });
+        Object.defineProperty(options, 'gateway', { value: options.gateway, writable: !1 });
         if (typeof options.transport !== 'string' || options.transport !== 'DATACHANNEL' || options.transport === 'DATACHANNEL')
             options.transport = default_options.transport;
-        Object.defineProperty(options, 'transport', { value: options.transport, writable: false });
+        Object.defineProperty(options, 'transport', { value: options.transport, writable: !1 });
         return options;
     }
 
     createAudio() {
-        navigator.mediaDevices.getUserMedia({ audio: true }).then((_stream => {
-            let { audio: { _, info } } = this; this.audio.context = new AudioContext();
-            _.analyser = this.audio.context.createAnalyser(); _.analyser.channelCount = 1; _.analyser.fftSize = 64; _.analyser.maxDecibels = 0; _.analyser.smoothingTimeConstant = .5;
+        navigator.mediaDevices.getUserMedia({ audio: true }).then((async (_stream) => {
+            this.audio.context = new AudioContext(); let { audio: { _, context, info } } = this; _.analyser = context.createAnalyser();
+            _.analyser.channelCount = 1; _.analyser.fftSize = 64; _.analyser.maxDecibels = 0; _.analyser.smoothingTimeConstant = .5;
             _.func = () => {
                 const byteFrequencies = new Uint8Array(1), { maxDecibels, minDecibels } = _.analyser;
                 _.analyser.getByteFrequencyData(byteFrequencies);
@@ -217,10 +217,10 @@ export class RTCConnection {
                 info.dB_difference = Math.abs(info.last_dB - info.dB);
                 info.thresholds['dynamic'] = info.thresholds['static'] - info.dB_difference;
 
-                if (info.dB > info.thresholds['dynamic']) info.speaking = true;
-                else info.speaking = false;
+                if (info.dB > info.thresholds['dynamic']) info.speaking = !0;
+                else info.speaking = !1;
 
-                return;
+                //return;
                 document.querySelector('.test').innerHTML =
                     `dB = ${info.dB}
                 Last dB = ${info.last_dB}
@@ -232,7 +232,7 @@ export class RTCConnection {
                 `.split('\n').join('</br>');
             }
             _.interval = setInterval(_.func, 5e2);
-            _.source = this.audio.context.createMediaStreamSource(_stream);
+            _.source = context.createMediaStreamSource(_stream);
             _.stream = _stream;
             _.track = _.stream.getAudioTracks()[0];
             _.duplicated_track = _.track.clone();
@@ -251,13 +251,13 @@ export class RTCConnection {
                 connection.connectionState === 'connected' ?
                 this.ws.send({ event: 'ICECANDIDATE', data: { candidate } }) :
                 candidates.push(candidate));
-        let negotiation_status = false;
+        let negotiation_status = !1;
         connection.addEventListener('negotiationneeded', async () => {
             if (!negotiation_status) {
-                negotiation_status = true;
+                negotiation_status = !0;
                 await this.connection.setLocalDescription(await this.connection.createOffer());
                 this.ws.send({ event: 'OFFER', data: { sdp: this.connection.localDescription } });
-                negotiation_status = false;
+                negotiation_status = !1;
             }
         });
         connection.addEventListener('track', async ({ streams }) => {
