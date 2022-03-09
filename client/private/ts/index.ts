@@ -1,4 +1,6 @@
-import { injectClassNames, RTCConnection, WS } from '../ts/global';
+import { injectClassNames, WS } from '../ts/global';
+import { RTCConnection } from './rtcc';
+
 
 const styles = {
     global: require('../styles/global.scss'),
