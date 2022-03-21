@@ -63,6 +63,32 @@ a.link:hover {
     text-decoration: underline;
 }
 
+.nav {
+    height: 6rem;
+    margin: 2rem;
+    border-radius: 1rem;
+
+    .container {
+        display: grid;
+        grid-template-columns: 25% 50% 25%;
+        width: 75%;
+        height: 75%;
+        margin: auto;
+        border-radius: 2rem;
+        background: $background-secondary;
+    }
+
+    .greet {
+        font-size: 20px;
+    }
+
+    .links {
+        display: flex;
+        align-items: center;
+        justify-content: space-evenly;
+    }
+}
+
 /* Extra small devices (phones, 600px and down) */
 @media only screen and (max-width: 600px) {}
 

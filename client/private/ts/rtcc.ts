@@ -116,16 +116,6 @@ export class RTCConnection extends EventEmitter {
                 else info.speaking = !1;
 
                 if (speaking !== info.speaking) this.emit('speaking', info.speaking);
-
-                document.querySelector('.test').innerHTML =
-                    `dB = ${info.dB}
-                Last dB = ${info.last_dB}
-                Last dBs = ${info.last_dBs.join(' / ')}
-                Difference = ${info.dB_difference}
-                Dynamic Threshold = ${info.thresholds['dynamic']}
-                Static Threshold = ${info.thresholds['static']}
-                Speaking = ${info.speaking}
-                `.split('\n').join('</br>');
             }
             _.interval = setInterval(_.func, 5e2);
             _.source = context.createMediaStreamSource(_stream);
