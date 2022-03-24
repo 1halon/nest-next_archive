@@ -18,7 +18,7 @@ NestFactory.create<NestExpressApplication>(AppModule).then(function (app) {
     origin: true
   });
   app.use(cookieParser(process.env.COOKIE_SECRET));
-  /*app.use(helmet({
+  app.use(helmet({
     contentSecurityPolicy: {
       directives: {
         'default-src': "'self'",
@@ -26,7 +26,7 @@ NestFactory.create<NestExpressApplication>(AppModule).then(function (app) {
       }
     },
     dnsPrefetchControl: { allow: true }
-  }));*/
+  }));
   //app.use(limiter());
   app.use(requestIP.mw());
   app.use(userAgent.express());

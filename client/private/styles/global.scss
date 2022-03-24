@@ -52,41 +52,14 @@ body {
     font-size: 16px;
 }
 
-a.link {
-    color: $text-link;
-    font-weight: 500;
+a {
+    color: white;
     text-decoration: none;
     cursor: pointer;
 }
 
-a.link:hover {
+a:hover {
     text-decoration: underline;
-}
-
-.nav {
-    height: 6rem;
-    margin: 2rem;
-    border-radius: 1rem;
-
-    .container {
-        display: grid;
-        grid-template-columns: 25% 50% 25%;
-        width: 75%;
-        height: 75%;
-        margin: auto;
-        border-radius: 2rem;
-        background: $background-secondary;
-    }
-
-    .greet {
-        font-size: 20px;
-    }
-
-    .links {
-        display: flex;
-        align-items: center;
-        justify-content: space-evenly;
-    }
 }
 
 /* Extra small devices (phones, 600px and down) */

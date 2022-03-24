@@ -1,7 +1,9 @@
 declare namespace AuthScssNamespace {
   export interface IAuthScss {
     container: string;
-    link: string;
+    greet: string;
+    links: string;
+    login: string;
     nav: string;
   }
 }
