@@ -1,5 +1,4 @@
-const css_loader = { loader: 'css-loader', options: { modules: { localIdentName: '[local]-[hash:base64:5]' } } },
-  glob = require('glob'),
+const glob = require('glob'),
   html_webpack_plugin_options = { hash: true, inject: 'head', minify: 'auto', scriptLoading: 'defer' },
   path = require('path'),
   webpack = require('webpack'),
@@ -11,6 +10,18 @@ const css_loader = { loader: 'css-loader', options: { modules: { localIdentName:
   HtmlWebpackPlugin = require('html-webpack-plugin'),
   InjectBodyPlugin = require('inject-body-webpack-plugin').default,
   MiniCssExtractPlugin = require('mini-css-extract-plugin'),
+  css_loader = [
+    MiniCssExtractPlugin.loader,
+    '@teamsupercell/typings-for-css-modules-loader',
+    {
+      loader: 'css-loader',
+      options: {
+        modules: {
+          localIdentName: '[local]-[hash:base64:5]'
+        }
+      }
+    },
+  ],
   RemoveEmptyScriptsPlugin = require('webpack-remove-empty-scripts'),
   { SubresourceIntegrityPlugin } = require('webpack-subresource-integrity'),
   WebpackObfuscator = require('webpack-obfuscator'),
@@ -21,7 +32,8 @@ const css_loader = { loader: 'css-loader', options: { modules: { localIdentName:
   JS_DIR = path.join(PRIVATE_DIR, 'js'),
   TS_DIR = path.join(PRIVATE_DIR, 'ts'),
   VIEWS_DIR = path.join(PRIVATE_DIR, 'views'),
-  EXTENSIONS = ['.css', '.gif', '.html', '.js', '.json', '.jpeg', '.jpg', '.png', 'sass', '.scss', '.svg', '.ts', '.webp'];
+  EXCLUDE = /node_modules/i,
+  EXTENSIONS = ['.css', '.gif', '.html', '.js', '.json', '.jsx', '.jpeg', '.jpg', '.png', 'sass', '.scss', '.svg', '.ts', '.tsx', '.webp'];
 
 function reduce(a, b) { a[path.parse(b).name] = b; return a; };
 
@@ -35,49 +47,15 @@ module.exports = (env, argv) => {
     mode: mode,
     module: {
       rules: [
-        {
-          test: /\.css$/i,
-          use: [
-            MiniCssExtractPlugin.loader,
-            '@teamsupercell/typings-for-css-modules-loader',
-            css_loader
-          ]
-        },
-        {
-          test: /\.(gif|jpe?g|png|svg|webp)$/i,
-          type: 'asset',
-        },
-        {
-          test: /\.html$/i,
-          loader: "html-loader",
-          options: {
-            sources: false
-          }
-        },
-        {
-          test: /\.json$/i,
-          type: 'asset/resource',
-        },
-        {
-          test: /\.s[ac]ss$/i,
-          use: [
-            MiniCssExtractPlugin.loader,
-            '@teamsupercell/typings-for-css-modules-loader',
-            css_loader,
-            'sass-loader',
-          ]
-        },
-        {
-          test: /\.ts?$/,
-          use: 'ts-loader'
-        },
-        {
-          test: /\.worklet\.js$/,
-          loader: 'worklet-loader',
-          options: {
-            name: '[contenthash].js'
-          }
-        }
+        { test: /\.css$/i, use: css_loader },
+        { test: /\.(gif|jpe?g|png|svg|webp)$/i, type: 'asset' },
+        { loader: 'html-loader', test: /\.html$/i },
+        { loader: 'babel-loader', test: /\.js[x]?$/i },
+        { test: /\.json$/i, type: 'asset/resource' },
+        { test: /\.s[ac]ss$/i, use: css_loader.concat('sass-loader') },
+        { loader: 'babel-loader', test: /\.ts[x]?$/i },
+        { loader: 'worker-loader', options: { name: '[contenthash].worker.js' }, test: /\.worker\.js$/i },
+        { loader: 'worklet-loader', options: { name: '[contenthash].worklet.js' }, test: /\.worklet\.js$/i }
       ]
     },
     node: false,
@@ -101,7 +79,7 @@ module.exports = (env, argv) => {
         }),
         new JsonMinimizerPlugin(),
         new TerserPlugin({
-          extractComments: false,
+          extractComments: 'all',
           terserOptions: {
             compress: true,
             keep_classnames: false,
@@ -131,24 +109,6 @@ module.exports = (env, argv) => {
     },
     plugins: [
       new CssMinimizerPlugin(),
-      /*new CspHtmlWebpackPlugin({
-        'base-uri': "'self'",
-        'img-src': "'self'",
-        'object-src': "'none'",
-        'script-src': "'self'",
-        'style-src': "'self' https://fonts.googleapis.com"
-      }, {
-        enabled: true,
-        hashEnabled: {
-          'script-src': true,
-          'style-src': true
-        },
-        hashingMethod: 'sha256',
-        nonceEnabled: {
-          'script-src': true,
-          'style-src': true
-        }
-      }),*/
       new HtmlWebpackPlugin({
         chunks: ['404'],
         filename: '404.html',

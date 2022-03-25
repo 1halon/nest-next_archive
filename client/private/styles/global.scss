@@ -39,7 +39,8 @@ $text-link: var(--text-link);
 }
 
 html,
-body {
+body,
+#root {
     display: block;
     position: relative;
     width: 100%;

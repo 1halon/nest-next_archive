@@ -1,4 +1,4 @@
-declare module '*.css' {
+/*declare module '*.css' {
     interface IClassNames {
         [className: string]: string
     }
@@ -15,4 +15,4 @@ declare module '*.scss' {
 declare module "*.worklet.ts" {
     const exportString: string;
     export default exportString;
-}
+}*/

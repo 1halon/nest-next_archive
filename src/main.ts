@@ -30,7 +30,7 @@ NestFactory.create<NestExpressApplication>(AppModule).then(function (app) {
   //app.use(limiter());
   app.use(requestIP.mw());
   app.use(userAgent.express());
-  //app.useGlobalFilters(new NotFoundExceptionFilter());
+  app.useGlobalFilters(new NotFoundExceptionFilter());
   app.useWebSocketAdapter(new WsAdapter(app));
   app.listen(80);
 });

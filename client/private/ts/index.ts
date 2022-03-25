@@ -2,6 +2,7 @@ import { injectClassNames } from '../ts/global';
 const styles = { global: require('../styles/global.scss'), index: require('../styles/index.scss').default }
 injectClassNames(styles.index);
 
+/*
 type CardRank = 'Ace' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | 'Jack' | 'Queen' | 'King';
 type CardSuit = 'Clubs' | 'Diamonds' | 'Hearts' | 'Spades';
 
@@ -64,4 +65,4 @@ class Deck {
     }
 
     shuffle() { return this.cards = Deck.shuffle(this.cards); }
-}
+}*/

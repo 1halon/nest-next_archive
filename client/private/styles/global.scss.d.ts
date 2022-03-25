@@ -1,10 +1,6 @@
 declare namespace GlobalScssNamespace {
   export interface IGlobalScss {
-    container: string;
-    greet: string;
-    links: string;
-    login: string;
-    nav: string;
+    app: string;
   }
 }
 

@@ -60,8 +60,8 @@ export class AppModule implements NestModule {
 @Catch(NotFoundException)
 export class NotFoundExceptionFilter implements ExceptionFilter {
   catch(exception: HttpException, host: ArgumentsHost) {
-    const ctx = host.switchToHttp(), response = ctx.getResponse(); response.statusCode = 404;
-    response.sendFile(join(process.cwd(), 'client/public/404.html'));
+    const ctx = host.switchToHttp(), response = ctx.getResponse(); response.statusCode = 404; response.send();
+    //response.sendFile(join(process.cwd(), 'client/public/404.html'));
   }
 }
 
