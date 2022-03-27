@@ -15,8 +15,6 @@ export class AuthControllerV1 {
         private readonly userService: UserService
     ) { };
 
-    private readonly mail_templates = this.templateService.getAllCategoryTemplates('mail');
-
     @Post('confirm')
     @HttpCode(200)
     async confirm(@Res() res: Response, @Req() req: Request, @Query('token') token: string) {

@@ -1,6 +1,7 @@
 import EventEmitter from 'events';
+import { ops } from '../../../shared/ts/global';
 import { v4 } from 'uuid';
-import { Logger, ops, WS, WSOptions } from './global';
+import { Logger, WS, WSOptions } from './global';
 
 interface AudioInfo {
     dB: number;
@@ -14,18 +15,29 @@ interface AudioInfo {
 interface Audio {
     _: {
         analyser: AnalyserNode;
-        duplicated_track: MediaStreamTrack;
         func: Function;
         interval: number | typeof setInterval;
         source: MediaStreamAudioSourceNode;
         stream: MediaStream;
-        track: MediaStreamTrack;
     }
     context: AudioContext;
     info: AudioInfo
 }
 
+interface CamInfo { }
+
+interface Cam {
+    info: CamInfo;
+}
+
+interface DisplayInfo { }
+
+interface Display {
+    info: DisplayInfo;
+}
+
 interface RTCCEvents {
+    connected: [];
     speaking: [speaking: boolean];
 }
 
@@ -35,19 +47,11 @@ interface RTCCOptions {
     transport?: 'DATACHANNEL' | 'DEFAULT';
 }
 
-export class RTCConnection extends EventEmitter {
+export default class RTCConnection extends EventEmitter {
     constructor(options: RTCCOptions, ws_options?: WSOptions) {
         super();
         this.audio = {
-            _: {
-                analyser: null,
-                duplicated_track: null,
-                func: null,
-                interval: null,
-                source: null,
-                stream: null,
-                track: null
-            },
+            _: { analyser: null, func: null, interval: null, source: null, stream: null },
             context: null,
             info: {
                 dB: -100,
@@ -63,21 +67,12 @@ export class RTCConnection extends EventEmitter {
         this.logger = new Logger('RTCConnection');
         Object.defineProperty(this, 'options', {
             value: ops<RTCCOptions>(options, {
-                gateway: {
-                    type: 'string',
-                    properties: { required: !0 }
-                },
-                threshold: {
-                    type: 'object',
-                    default: { type: 'DYNAMIC', value: -60 }
-                },
-                transport: {
-                    type: 'string',
-                    default: 'DEFAULT'
-                }
+                gateway: { type: 'string', properties: { required: !0 } },
+                threshold: { type: 'object', default: { type: 'DYNAMIC', value: -60 } },
+                transport: { type: 'string', default: 'DEFAULT' }
             }), writable: !1
         });
-        this.ws = new WS(options.gateway, Object.assign(ws_options ?? {}, { debug: 'RTCConnection' }));
+        this.ws = new WS(options.gateway + `?id=${this.id}&transport=${this.options.transport}`, Object.assign(ws_options ?? {}, { debug: 'RTCConnection' }));
         this.ws.on('ANSWER', async ({ sdp }) => await this.connection.setRemoteDescription(sdp).catch(e => void e));
         this.ws.on('BULK_ICECANDIDATES', async ({ candidates }) =>
             candidates.forEach(async candidate => await this.connection.addIceCandidate(candidate).catch(e => void e)));
@@ -86,18 +81,19 @@ export class RTCConnection extends EventEmitter {
             await this.connection.setLocalDescription(await this.connection.createAnswer());
             this.ws.send({ event: 'ANSWER', data: { sdp: this.connection.localDescription } });
         }).catch(e => void e));
-        this.createAudio();
     };
 
     public audio: Audio;
+    public cam: Cam;
     public connection: RTCPeerConnection;
+    public display: Display;
     public id: string;
     public logger: Logger;
     private readonly options: RTCCOptions;
     public ws: WS;
 
     createAudio() {
-        navigator.mediaDevices.getUserMedia({ audio: true }).then((async (_stream) => {
+        navigator.mediaDevices.getUserMedia({ audio: true }).then((_stream => {
             this.audio.context = new AudioContext(); let { audio: { _, context, info } } = this; _.analyser = context.createAnalyser();
             _.analyser.channelCount = 1; _.analyser.fftSize = 64; _.analyser.maxDecibels = 0; _.analyser.smoothingTimeConstant = .5;
             _.func = () => {
@@ -120,15 +116,26 @@ export class RTCConnection extends EventEmitter {
             _.interval = setInterval(_.func, 5e2);
             _.source = context.createMediaStreamSource(_stream);
             _.stream = _stream;
-            _.track = _.stream.getAudioTracks()[0];
-            _.duplicated_track = _.track.clone();
             _.source.connect(_.analyser);
+        })).catch(e => void e);
+    }
+
+    createCam() {
+        navigator.mediaDevices.getUserMedia({ video: true }).then((_stream => {
+            // TODO
+        })).catch(e => void e);
+    }
+
+    createDisplay() {
+        navigator.mediaDevices.getDisplayMedia({ audio: true, video: true }).then((_stream => {
+            // TODO
         })).catch(e => void e);
     }
 
     createConnection(configuration?: RTCConfiguration) {
         const connection = new RTCPeerConnection(configuration), candidates = [];
 
+        connection.addEventListener('connectionstatechange', async () => connection.connectionState === 'connected' && this.emit('connected'));
         connection.addEventListener('datachannel', async () => {
             // TODO
         });
@@ -147,7 +154,7 @@ export class RTCConnection extends EventEmitter {
             }
         });
         connection.addEventListener('track', async ({ streams }) => {
-            //TODO
+            // TODO
         });
 
         return connection;

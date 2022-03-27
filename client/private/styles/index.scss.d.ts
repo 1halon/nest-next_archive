@@ -1,6 +1,6 @@
 declare namespace IndexScssNamespace {
   export interface IIndexScss {
-    app: string;
+    root: string;
   }
 }
 

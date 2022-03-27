@@ -6,7 +6,7 @@ const glob = require('glob'),
   JsonMinimizerPlugin = require('json-minimizer-webpack-plugin'),
   TerserPlugin = require('terser-webpack-plugin'),
   CssMinimizerPlugin = require('css-minimizer-webpack-plugin'),
-  CspHtmlWebpackPlugin = require('csp-html-webpack-plugin'),
+  //CspHtmlWebpackPlugin = require('csp-html-webpack-plugin'),
   HtmlWebpackPlugin = require('html-webpack-plugin'),
   InjectBodyPlugin = require('inject-body-webpack-plugin').default,
   MiniCssExtractPlugin = require('mini-css-extract-plugin'),
@@ -24,15 +24,14 @@ const glob = require('glob'),
   ],
   RemoveEmptyScriptsPlugin = require('webpack-remove-empty-scripts'),
   { SubresourceIntegrityPlugin } = require('webpack-subresource-integrity'),
-  WebpackObfuscator = require('webpack-obfuscator'),
+  //{ VueLoaderPlugin } = require('vue-loader'),
+  //WebpackObfuscator = require('webpack-obfuscator'),
 
   CLIENT_DIR = path.join(__dirname, 'client'),
   PRIVATE_DIR = path.join(CLIENT_DIR, 'private'),
   PUBLIC_DIR = path.join(CLIENT_DIR, 'public'),
-  JS_DIR = path.join(PRIVATE_DIR, 'js'),
   TS_DIR = path.join(PRIVATE_DIR, 'ts'),
   VIEWS_DIR = path.join(PRIVATE_DIR, 'views'),
-  EXCLUDE = /node_modules/i,
   EXTENSIONS = ['.css', '.gif', '.html', '.js', '.json', '.jsx', '.jpeg', '.jpg', '.png', 'sass', '.scss', '.svg', '.ts', '.tsx', '.webp'];
 
 function reduce(a, b) { a[path.parse(b).name] = b; return a; };
@@ -54,6 +53,7 @@ module.exports = (env, argv) => {
         { test: /\.json$/i, type: 'asset/resource' },
         { test: /\.s[ac]ss$/i, use: css_loader.concat('sass-loader') },
         { loader: 'babel-loader', test: /\.ts[x]?$/i },
+        //{ loader: 'vue-loader', test: /\.vue$/i },
         { loader: 'worker-loader', options: { name: '[contenthash].worker.js' }, test: /\.worker\.js$/i },
         { loader: 'worklet-loader', options: { name: '[contenthash].worklet.js' }, test: /\.worklet\.js$/i }
       ]
@@ -141,6 +141,7 @@ module.exports = (env, argv) => {
       new MiniCssExtractPlugin({ filename: '[contenthash].css' }),
       new RemoveEmptyScriptsPlugin(),
       new SubresourceIntegrityPlugin(),
+      //new VueLoaderPlugin(),
       //new WebpackObfuscator()
     ],
     resolve: { extensions: EXTENSIONS },

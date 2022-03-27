@@ -1,6 +1,6 @@
 declare namespace AuthScssNamespace {
   export interface IAuthScss {
-    app: string;
+    root: string;
   }
 }
 
