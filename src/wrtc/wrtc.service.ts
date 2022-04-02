@@ -1,20 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { WebSocket } from 'ws';
-import wrtc from 'wrtc';
-
-interface Client { }
+import { Client } from 'shared/ts/client';
 
 @Injectable()
 export class WrtcService {
-    constructor() {
-        this.clients = {};
-    };
-
-    public clients: Record<string, Client>;
-
-    createClient(id: string, ws: WebSocket) {
-        const client = {};
-
-        return client;
-    }
+    public static Client = Client;
+    public clients = {} as Record<string, Client>;
 }

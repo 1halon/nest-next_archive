@@ -2,30 +2,22 @@ const glob = require('glob'),
   html_webpack_plugin_options = { hash: true, inject: 'head', minify: 'auto', scriptLoading: 'defer' },
   path = require('path'),
   webpack = require('webpack'),
+  { CleanWebpackPlugin } = require('clean-webpack-plugin'),
   ImageMinimizerPlugin = require('image-minimizer-webpack-plugin'),
   JsonMinimizerPlugin = require('json-minimizer-webpack-plugin'),
   TerserPlugin = require('terser-webpack-plugin'),
   CssMinimizerPlugin = require('css-minimizer-webpack-plugin'),
-  //CspHtmlWebpackPlugin = require('csp-html-webpack-plugin'),
   HtmlWebpackPlugin = require('html-webpack-plugin'),
   InjectBodyPlugin = require('inject-body-webpack-plugin').default,
   MiniCssExtractPlugin = require('mini-css-extract-plugin'),
   css_loader = [
     MiniCssExtractPlugin.loader,
     '@teamsupercell/typings-for-css-modules-loader',
-    {
-      loader: 'css-loader',
-      options: {
-        modules: {
-          localIdentName: '[local]-[hash:base64:5]'
-        }
-      }
-    },
+    { loader: 'css-loader', options: { modules: { localIdentName: '[local]-[hash:base64:5]' } } },
   ],
   RemoveEmptyScriptsPlugin = require('webpack-remove-empty-scripts'),
   { SubresourceIntegrityPlugin } = require('webpack-subresource-integrity'),
-  //{ VueLoaderPlugin } = require('vue-loader'),
-  //WebpackObfuscator = require('webpack-obfuscator'),
+  WorkboxPlugin = require('workbox-webpack-plugin'),
 
   CLIENT_DIR = path.join(__dirname, 'client'),
   PRIVATE_DIR = path.join(CLIENT_DIR, 'private'),
@@ -53,7 +45,6 @@ module.exports = (env, argv) => {
         { test: /\.json$/i, type: 'asset/resource' },
         { test: /\.s[ac]ss$/i, use: css_loader.concat('sass-loader') },
         { loader: 'babel-loader', test: /\.ts[x]?$/i },
-        //{ loader: 'vue-loader', test: /\.vue$/i },
         { loader: 'worker-loader', options: { name: '[contenthash].worker.js' }, test: /\.worker\.js$/i },
         { loader: 'worklet-loader', options: { name: '[contenthash].worklet.js' }, test: /\.worklet\.js$/i }
       ]
@@ -66,29 +57,18 @@ module.exports = (env, argv) => {
           loader: false,
           minimizer: {
             implementation: ImageMinimizerPlugin.imageminMinify,
-            options: {
-              plugins: [
-                'imagemin-gifsicle',
-                'imagemin-mozjpeg',
-                'imagemin-pngquant',
-                'imagemin-svgo',
-              ],
-            },
+            options: { plugins: ['imagemin-gifsicle', 'imagemin-mozjpeg', 'imagemin-pngquant', 'imagemin-svgo'] },
           },
           test: /\.(gif|jpe?g|png|svg|webp)$/i
         }),
         new JsonMinimizerPlugin(),
         new TerserPlugin({
-          extractComments: 'all',
+          extractComments: { banner: () => 'License information can be found in the void.', },
           terserOptions: {
             compress: true,
             keep_classnames: false,
             keep_fnames: false,
-            mangle: {
-              eval: true,
-              properties: mode === 'development' ? false : true,
-              toplevel: true
-            },
+            mangle: { eval: true, properties: mode === 'development' ? false : true, toplevel: true },
             toplevel: true
           }
         })
@@ -103,11 +83,9 @@ module.exports = (env, argv) => {
       path: PUBLIC_DIR,
       publicPath: '/assets/',
     },
-    performance: {
-      assetFilter: (filename) => EXTENSIONS.includes(path.extname(filename)),
-      hints: false
-    },
+    performance: { assetFilter: (filename) => EXTENSIONS.includes(path.extname(filename)), hints: false },
     plugins: [
+      new CleanWebpackPlugin({ cleanAfterEveryBuildPatterns: ['*.LICENSE.txt'], protectWebpackAssets: false }),
       new CssMinimizerPlugin(),
       new HtmlWebpackPlugin({
         chunks: ['404'],
@@ -135,21 +113,14 @@ module.exports = (env, argv) => {
         template: path.join(VIEWS_DIR, 'index.html'),
         title: 'Meet | The Place Where You Meet The Simplicity of Technology',
       }),
-      new InjectBodyPlugin({
-        content: '\n<noscript>You need to enable JavaScript to run this app.</noscript>\n'
-      }),
+      new InjectBodyPlugin({ content: '\n<noscript>You need to enable JavaScript to run this app.</noscript>\n' }),
       new MiniCssExtractPlugin({ filename: '[contenthash].css' }),
       new RemoveEmptyScriptsPlugin(),
       new SubresourceIntegrityPlugin(),
-      //new VueLoaderPlugin(),
-      //new WebpackObfuscator()
+      new WorkboxPlugin.GenerateSW()
     ],
     resolve: { extensions: EXTENSIONS },
     watch: false,
-    watchOptions: {
-      aggregateTimeout: 1000,
-      ignored: /node_modules/,
-      stdin: true
-    }
+    watchOptions: { aggregateTimeout: 1000, ignored: /node_modules/i, stdin: true }
   }
 };

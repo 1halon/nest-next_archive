@@ -1,5 +1,5 @@
 import EventEmitter from 'events';
-import { ops } from '../../../shared/ts/global';
+import { createWRTC, ops } from '../../../shared/ts/global';
 import { v4 } from 'uuid';
 import { Logger, WS, WSOptions } from './global';
 
@@ -133,31 +133,7 @@ export default class RTCConnection extends EventEmitter {
     }
 
     createConnection(configuration?: RTCConfiguration) {
-        const connection = new RTCPeerConnection(configuration), candidates = [];
-
-        connection.addEventListener('connectionstatechange', async () => connection.connectionState === 'connected' && this.emit('connected'));
-        connection.addEventListener('datachannel', async () => {
-            // TODO
-        });
-        connection.addEventListener('icecandidate', async ({ candidate }) =>
-            candidate &&
-                connection.connectionState === 'connected' ?
-                this.ws.send({ event: 'ICECANDIDATE', data: { candidate } }) :
-                candidates.push(candidate));
-        let negotiation_status = !1;
-        connection.addEventListener('negotiationneeded', async () => {
-            if (!negotiation_status) {
-                negotiation_status = !0;
-                await this.connection.setLocalDescription(await this.connection.createOffer());
-                this.ws.send({ event: 'OFFER', data: { sdp: this.connection.localDescription } });
-                negotiation_status = !1;
-            }
-        });
-        connection.addEventListener('track', async ({ streams }) => {
-            // TODO
-        });
-
-        return connection;
+        return createWRTC.apply(this, [RTCPeerConnection, configuration]);
     }
 
     emit<K extends keyof RTCCEvents>(eventName: K, ...args: RTCCEvents[K]): boolean {
