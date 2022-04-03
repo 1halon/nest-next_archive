@@ -10,7 +10,7 @@ import userAgent from 'express-useragent';
 import { WsAdapter } from '@nestjs/platform-ws';
 
 NestFactory.create<NestExpressApplication>(AppModule).then(function (app) {
-  app.getHttpAdapter().useStaticAssets(join(process.cwd(), 'client/public'), { prefix: '/assets/' });
+  app.getHttpAdapter().useStaticAssets(join(process.cwd(), 'frontend/public'), { prefix: '/assets/' });
   app.enableCors({
     allowedHeaders: 'Accept,Authorization,Content-Type',
     credentials: true,

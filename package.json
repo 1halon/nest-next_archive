@@ -157,8 +157,7 @@
         "webpack-remove-empty-scripts": "^0.7.2",
         "webpack-subresource-integrity": "^5.1.0",
         "workbox-webpack-plugin": "^6.5.2",
-        "worker-loader": "^3.0.8",
-        "worklet-loader": "^2.0.0"
+        "worker-loader": "^3.0.8"
     },
     "jest": {
         "moduleFileExtensions": [

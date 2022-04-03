@@ -1,6 +1,6 @@
 import { Controller, Get, Res } from '@nestjs/common';
 import { Response } from 'express';
-import { AppService } from 'src/app.service';
+import { AppService } from 'backend/nest/app.service';
 
 @Controller({ host: 'localhost' })
 export class AuthController {

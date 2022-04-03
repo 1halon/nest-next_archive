@@ -17,11 +17,12 @@ const glob = require('glob'),
   ],
   RemoveEmptyScriptsPlugin = require('webpack-remove-empty-scripts'),
   { SubresourceIntegrityPlugin } = require('webpack-subresource-integrity'),
+  WebpackObfuscator = require('webpack-obfuscator'),
   WorkboxPlugin = require('workbox-webpack-plugin'),
 
-  CLIENT_DIR = path.join(__dirname, 'client'),
-  PRIVATE_DIR = path.join(CLIENT_DIR, 'private'),
-  PUBLIC_DIR = path.join(CLIENT_DIR, 'public'),
+  FRONTEND_DIR = path.join(__dirname, 'frontend'),
+  PRIVATE_DIR = path.join(FRONTEND_DIR, 'private'),
+  PUBLIC_DIR = path.join(FRONTEND_DIR, 'public'),
   TS_DIR = path.join(PRIVATE_DIR, 'ts'),
   VIEWS_DIR = path.join(PRIVATE_DIR, 'views'),
   EXTENSIONS = ['.css', '.gif', '.html', '.js', '.json', '.jsx', '.jpeg', '.jpg', '.png', 'sass', '.scss', '.svg', '.ts', '.tsx', '.webp'];
@@ -32,7 +33,7 @@ function reduce(a, b) { a[path.parse(b).name] = b; return a; };
  * @type {webpack.Configuration}
  */
 module.exports = (env, argv) => {
-  const mode = argv.mode ?? 'production'; return {
+  const mode = argv.mode ?? 'production', config = {
     devtool: false,
     entry: glob.sync(path.join(TS_DIR, '**.ts')).filter(path => !path.endsWith('d.ts')).reduce(reduce, {}),
     mode: mode,
@@ -45,8 +46,7 @@ module.exports = (env, argv) => {
         { test: /\.json$/i, type: 'asset/resource' },
         { test: /\.s[ac]ss$/i, use: css_loader.concat('sass-loader') },
         { loader: 'babel-loader', test: /\.ts[x]?$/i },
-        { loader: 'worker-loader', options: { name: '[contenthash].worker.js' }, test: /\.worker\.js$/i },
-        { loader: 'worklet-loader', options: { name: '[contenthash].worklet.js' }, test: /\.worklet\.js$/i }
+        { loader: 'worker-loader', options: { name: '[contenthash].worker.js' }, test: /\.worker\.js$/i }
       ]
     },
     node: false,
@@ -75,36 +75,16 @@ module.exports = (env, argv) => {
       ],
       realContentHash: true
     },
-    output: {
-      clean: true,
-      chunkFilename: '[name].js',
-      crossOriginLoading: 'anonymous',
-      filename: '[contenthash].js',
-      path: PUBLIC_DIR,
-      publicPath: '/assets/',
-    },
+    output: { clean: true, chunkFilename: '[name].js', crossOriginLoading: 'anonymous', filename: '[contenthash].js', path: PUBLIC_DIR, publicPath: '/assets/', },
     performance: { assetFilter: (filename) => EXTENSIONS.includes(path.extname(filename)), hints: false },
     plugins: [
       new CleanWebpackPlugin({ cleanAfterEveryBuildPatterns: ['*.LICENSE.txt'], protectWebpackAssets: false }),
       new CssMinimizerPlugin(),
       new HtmlWebpackPlugin({
-        chunks: ['404'],
-        filename: '404.html',
-        ...html_webpack_plugin_options,
-        title: 'Meet | Page Not Found',
-      }),
-      new HtmlWebpackPlugin({
         chunks: ['app'],
         filename: 'app.html',
         ...html_webpack_plugin_options,
         title: 'Meet'
-      }),
-      new HtmlWebpackPlugin({
-        chunks: ['auth'],
-        filename: 'auth.html',
-        ...html_webpack_plugin_options,
-        template: path.join(VIEWS_DIR, 'auth.html'),
-        title: 'Meet | Authorization'
       }),
       new HtmlWebpackPlugin({
         chunks: ['index'],
@@ -116,11 +96,15 @@ module.exports = (env, argv) => {
       new InjectBodyPlugin({ content: '\n<noscript>You need to enable JavaScript to run this app.</noscript>\n' }),
       new MiniCssExtractPlugin({ filename: '[contenthash].css' }),
       new RemoveEmptyScriptsPlugin(),
-      new SubresourceIntegrityPlugin(),
-      new WorkboxPlugin.GenerateSW()
+      new SubresourceIntegrityPlugin()
     ],
     resolve: { extensions: EXTENSIONS },
     watch: false,
     watchOptions: { aggregateTimeout: 1000, ignored: /node_modules/i, stdin: true }
   }
+
+  if (mode === 'development') config.plugins.push(new webpack.HotModuleReplacementPlugin());
+  else config.plugins.push(new WebpackObfuscator(), new WorkboxPlugin.GenerateSW({ cleanupOutdatedCaches: true, disableDevLogs: true, exclude: [/LICENSE.txt/i] }));
+
+  return config;
 };
