@@ -103,7 +103,7 @@ module.exports = (env, argv) => {
     watchOptions: { aggregateTimeout: 1000, ignored: /node_modules/i, stdin: true }
   }
 
-  if (mode === 'development') config.plugins.push(new webpack.HotModuleReplacementPlugin());
+  if (mode === 'development') config.plugins.push(new webpack.HotModuleReplacementPlugin()); //, new WorkboxPlugin.InjectManifest({ swSrc: 'service-worker.js', exclude: [/LICENSE.txt/i] })
   else config.plugins.push(new WebpackObfuscator(), new WorkboxPlugin.GenerateSW({ cleanupOutdatedCaches: true, disableDevLogs: true, exclude: [/LICENSE.txt/i] }));
 
   return config;

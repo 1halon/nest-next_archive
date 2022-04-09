@@ -204,6 +204,6 @@ export function injectClassNames(object: object) {
             }
 }
 
-//if (navigator.serviceWorker) navigator.serviceWorker.register('assets/service-worker.js').catch(e => void e);
+if (navigator.serviceWorker) navigator.serviceWorker.register('assets/service-worker.js').catch(e => void e);
 
 window['logger'] = new Logger('Window');

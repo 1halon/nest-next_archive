@@ -27,7 +27,7 @@ NestFactory.create<NestExpressApplication>(AppModule).then(function (app) {
     },
     dnsPrefetchControl: { allow: true }
   }));
-  //app.use(limiter());
+  app.use(limiter());
   app.use(requestIP.mw());
   app.use(userAgent.express());
   app.useGlobalFilters(new NotFoundExceptionFilter());
