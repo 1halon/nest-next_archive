@@ -3,7 +3,6 @@ const glob = require('glob'),
   path = require('path'),
   webpack = require('webpack'),
   { CleanWebpackPlugin } = require('clean-webpack-plugin'),
-  ImageMinimizerPlugin = require('image-minimizer-webpack-plugin'),
   JsonMinimizerPlugin = require('json-minimizer-webpack-plugin'),
   TerserPlugin = require('terser-webpack-plugin'),
   CssMinimizerPlugin = require('css-minimizer-webpack-plugin'),
@@ -53,14 +52,6 @@ module.exports = (env, argv) => {
     optimization: {
       minimize: true,
       minimizer: [
-        new ImageMinimizerPlugin({
-          loader: false,
-          minimizer: {
-            implementation: ImageMinimizerPlugin.imageminMinify,
-            options: { plugins: ['imagemin-gifsicle', 'imagemin-mozjpeg', 'imagemin-pngquant', 'imagemin-svgo'] },
-          },
-          test: /\.(gif|jpe?g|png|svg|webp)$/i
-        }),
         new JsonMinimizerPlugin(),
         new TerserPlugin({
           extractComments: { banner: () => 'License information can be found in the void.', },
@@ -96,15 +87,15 @@ module.exports = (env, argv) => {
       new InjectBodyPlugin({ content: '\n<noscript>You need to enable JavaScript to run this app.</noscript>\n' }),
       new MiniCssExtractPlugin({ filename: '[contenthash].css' }),
       new RemoveEmptyScriptsPlugin(),
-      new SubresourceIntegrityPlugin()
-    ],
+      new SubresourceIntegrityPlugin(),
+      mode === 'development' && 
+      (new webpack.HotModuleReplacementPlugin() && new WorkboxPlugin.InjectManifest({ swSrc: 'service-worker.js', exclude: [/LICENSE.txt/i] })) || 
+      (new WebpackObfuscator() && new WorkboxPlugin.GenerateSW({ cleanupOutdatedCaches: true, disableDevLogs: true, exclude: [/LICENSE.txt/i] })),
+    ].filter(Boolean),
     resolve: { extensions: EXTENSIONS },
     watch: false,
     watchOptions: { aggregateTimeout: 1000, ignored: /node_modules/i, stdin: true }
   }
-
-  if (mode === 'development') config.plugins.push(new webpack.HotModuleReplacementPlugin()); //, new WorkboxPlugin.InjectManifest({ swSrc: 'service-worker.js', exclude: [/LICENSE.txt/i] })
-  else config.plugins.push(new WebpackObfuscator(), new WorkboxPlugin.GenerateSW({ cleanupOutdatedCaches: true, disableDevLogs: true, exclude: [/LICENSE.txt/i] }));
 
   return config;
 };

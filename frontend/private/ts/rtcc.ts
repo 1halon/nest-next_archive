@@ -89,10 +89,11 @@ export default class RTCConnection extends EventEmitter {
     public display: Display;
     public id: string;
     public logger: Logger;
-    private readonly options: RTCCOptions;
     public ws: WS;
 
-    createAudio() {
+    private readonly options: RTCCOptions;
+
+    public createAudio() {
         navigator.mediaDevices.getUserMedia({ audio: true }).then((_stream => {
             this.audio.context = new AudioContext(); let { audio: { _, context, info } } = this; _.analyser = context.createAnalyser();
             _.analyser.channelCount = 1; _.analyser.fftSize = 64; _.analyser.maxDecibels = 0; _.analyser.smoothingTimeConstant = .5;
@@ -120,27 +121,27 @@ export default class RTCConnection extends EventEmitter {
         })).catch(e => void e);
     }
 
-    createCam() {
+    public createCam() {
         navigator.mediaDevices.getUserMedia({ video: true }).then((_stream => {
             // TODO
         })).catch(e => void e);
     }
 
-    createDisplay() {
+    public createDisplay() {
         navigator.mediaDevices.getDisplayMedia({ audio: true, video: true }).then((_stream => {
             // TODO
         })).catch(e => void e);
     }
 
-    createConnection(configuration?: RTCConfiguration) {
+    public createConnection(configuration?: RTCConfiguration) {
         return createWRTC.apply(this, [RTCPeerConnection, configuration]);
     }
 
-    emit<K extends keyof RTCCEvents>(eventName: K, ...args: RTCCEvents[K]): boolean {
+    public emit<K extends keyof RTCCEvents>(eventName: K, ...args: RTCCEvents[K]): boolean {
         return EventEmitter.prototype.emit.apply(this, arguments);
     }
 
-    on<K extends keyof RTCCEvents>(eventName: K, listener: (...args: RTCCEvents[K]) => void): this {
+    public on<K extends keyof RTCCEvents>(eventName: K, listener: (...args: RTCCEvents[K]) => void): this {
         return EventEmitter.prototype.on.apply(this, arguments);
     }
 }

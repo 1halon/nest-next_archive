@@ -7,7 +7,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
-import { MailerModule } from "@nestjs-modules/mailer"
+import { MailerModule } from '@nestjs-modules/mailer';
 import { EjsAdapter } from '@nestjs-modules/mailer/dist/adapters/ejs.adapter';
 import { UserModule } from './user/user.module';
 import { ApiModule } from './api/api.module';
@@ -25,19 +25,14 @@ import { WrtcModule } from './wrtc/wrtc.module';
       template: {
         dir: join(process.cwd(), 'client/private/templates/mail'),
         adapter: new EjsAdapter(),
-        options: {
-          strict: true,
-        },
+        options: { strict: true, },
       },
       transport: {
-        auth: {
-          user: process.env.MAIL_ADDRESS,
-          pass: process.env.MAIL_PASS
-        },
+        auth: { user: process.env.MAIL_ADDRESS, pass: process.env.MAIL_PASS },
         service: 'gmail'
       }
     }),
-    MongooseModule.forRoot(process.env.MONGODB, { dbName: "meet" }),
+    MongooseModule.forRoot(process.env.MONGODB_LOCAL, { dbName: "meet" }),
     ThrottlerModule.forRoot({
       ttl: 60,
       limit: 10,

@@ -1,25 +1,23 @@
-import { OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, WebSocketGateway } from '@nestjs/websockets';
+import { OnGatewayConnection, OnGatewayDisconnect, WebSocketGateway } from '@nestjs/websockets';
 import { randomUUID } from 'crypto';
 import { IncomingMessage } from 'http';
-import { ClientOptions } from 'shared/ts/comm-client';
+import { CommClientOptions, SignalingSocket } from 'shared/ts/comm-client';
 import { Server, WebSocket } from 'ws';
 import { WrtcService } from './wrtc.service';
 
 @WebSocketGateway()
-export class WrtcGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
+export class WrtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly wrtcService: WrtcService
   ) { };
 
   private readonly server: Server;
 
-  afterInit(server: Server) { }
-
   handleConnection(ws: WebSocket, request: IncomingMessage) {
     ws['id'] = request.headers['sec-websocket-key'];
     const query = new URLSearchParams(request?.url.split('/?')[1]), id = query.get('id') ?? randomUUID(),
-      transport = query.get('transport') as ClientOptions['transport'];
-    this.wrtcService.clients[id] = new WrtcService.Client(id, ws, { target: 'SERVER', transport: transport });
+      transport = query.get('transport') as CommClientOptions['transport'];
+    this.wrtcService.clients[id] = new WrtcService.Client(id, new SignalingSocket(ws), { target: 'SERVER', transport: transport });
   }
 
   handleDisconnect(ws: WebSocket) {
@@ -27,7 +25,7 @@ export class WrtcGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     else var filter = client => JSON.stringify(client.ws) === JSON.stringify(ws);
     if (filter) var client = Object.values(this.wrtcService.clients).find(filter);
     if (client instanceof WrtcService.Client) {
-      client.disconnect(); delete this.wrtcService.clients[client.id];
+      //client.disconnect(); delete this.wrtcService.clients[client.id];
     }
   }
 }
