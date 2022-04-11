@@ -1,7 +1,8 @@
 import EventEmitter from 'events';
 import { createWRTC, ops } from '../../../shared/ts/global';
 import { v4 } from 'uuid';
-import { Logger, WS, WSOptions } from './global';
+import { Logger, WS } from './global';
+import { CommClient, SignalingSocket } from '../../../shared/ts/comm-client';
 
 interface AudioInfo {
     dB: number;
@@ -48,7 +49,7 @@ interface RTCCOptions {
 }
 
 export default class RTCConnection extends EventEmitter {
-    constructor(options: RTCCOptions, ws_options?: WSOptions) {
+    constructor(options: RTCCOptions) {
         super();
         this.audio = {
             _: { analyser: null, func: null, interval: null, source: null, stream: null },
@@ -61,35 +62,26 @@ export default class RTCConnection extends EventEmitter {
                 speaking: !1,
                 thresholds: { dynamic: -60, static: -60 }
             }
-        };
-        this.connection = this.createConnection();
-        Object.defineProperty(this, 'id', { value: v4(), writable: !1 });
-        this.logger = new Logger('RTCConnection');
-        Object.defineProperty(this, 'options', {
-            value: ops<RTCCOptions>(options, {
-                gateway: { type: 'string', properties: { required: !0 } },
-                threshold: { type: 'object', default: { type: 'DYNAMIC', value: -60 } },
-                transport: { type: 'string', default: 'DEFAULT' }
-            }), writable: !1
+        }
+        Object.defineProperties(this, {
+            id: { value: v4(), writable: !1 },
+            options: {
+                value: ops<RTCCOptions>(options, {
+                    gateway: { type: 'string', properties: { required: !0 } },
+                    threshold: { type: 'object', default: { type: 'DYNAMIC', value: -60 } },
+                    transport: { type: 'string', default: 'DEFAULT' }
+                }), writable: !1
+            }
         });
-        this.ws = new WS(options.gateway + `?id=${this.id}&transport=${this.options.transport}`, Object.assign(ws_options ?? {}, { debug: 'RTCConnection' }));
-        this.ws.on('ANSWER', async ({ sdp }) => await this.connection.setRemoteDescription(sdp).catch(e => void e));
-        this.ws.on('BULK_ICECANDIDATES', async ({ candidates }) =>
-            candidates.forEach(async candidate => await this.connection.addIceCandidate(candidate).catch(e => void e)));
-        this.ws.on('ICECANDIDATE', async ({ candidate }) => await this.connection.addIceCandidate(candidate).catch(e => void e));
-        this.ws.on('OFFER', async ({ sdp }) => this.connection.setRemoteDescription(sdp).then(async () => {
-            await this.connection.setLocalDescription(await this.connection.createAnswer());
-            this.ws.send({ event: 'ANSWER', data: { sdp: this.connection.localDescription } });
-        }).catch(e => void e));
+        this.comm = new CommClient(this.id,
+            new SignalingSocket(new WS(options.gateway + `?id=${this.id}&transport=${this.options.transport}`)), { target: 'CLIENT' });
     };
 
     public audio: Audio;
     public cam: Cam;
-    public connection: RTCPeerConnection;
+    public comm: CommClient;
     public display: Display;
     public id: string;
-    public logger: Logger;
-    public ws: WS;
 
     private readonly options: RTCCOptions;
 
@@ -131,10 +123,6 @@ export default class RTCConnection extends EventEmitter {
         navigator.mediaDevices.getDisplayMedia({ audio: true, video: true }).then((_stream => {
             // TODO
         })).catch(e => void e);
-    }
-
-    public createConnection(configuration?: RTCConfiguration) {
-        return createWRTC.apply(this, [RTCPeerConnection, configuration]);
     }
 
     public emit<K extends keyof RTCCEvents>(eventName: K, ...args: RTCCEvents[K]): boolean {

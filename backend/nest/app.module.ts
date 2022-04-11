@@ -32,7 +32,7 @@ import { WrtcModule } from './wrtc/wrtc.module';
         service: 'gmail'
       }
     }),
-    MongooseModule.forRoot(process.env.MONGODB_LOCAL, { dbName: "meet" }),
+    MongooseModule.forRoot(process.env.MONGODB, { dbName: "meet" }),
     ThrottlerModule.forRoot({
       ttl: 60,
       limit: 10,

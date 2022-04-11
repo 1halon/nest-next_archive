@@ -1,3 +1,21 @@
+type ArgumentTypes = 'bigint' | 'boolean' | 'function' | 'number' | 'object' | 'string' | 'symbol' | 'undefined';
+
+interface Argument {
+    optional?: boolean;
+    type: ArgumentTypes | ArgumentTypes[];
+}
+
+export function args(args: IArguments, schema: Argument[]) {
+    const required_args = schema.filter(arg => !arg.optional);
+    if (args.length !== required_args.length)
+        throw new Error(`Expected ${required_args.length < schema.length ? `${required_args}-${schema.length}` : schema.length} arguments, but got ${args.length}.`);
+    for (let i = 0; i < schema.length; i++) {
+        const arg = args[i], argInSchema = schema[i];
+        if (!arg && (i !== schema.length - 1 || !argInSchema.optional)) throw new Error('INVALID_ARG');
+        if (typeof arg !== argInSchema.type) throw new Error('INVALID_ARG');
+    }
+}
+
 interface OptionProperties {
     readonly?: boolean;
     required?: boolean;
@@ -55,10 +73,10 @@ export function createWRTC(p0, configuration?: RTCConfiguration): WRTC {
         candidates = connection.candidates = [],
         channels = connection.channels = {};
     let negotiation_status = connection.negotiation_status = !1;
-    
+
     // TODO
     connection.addEventListener('connectionstatechange', async () => {
-         
+
     });
     // TODO
     connection.addEventListener('datachannel', async ({ channel }) => {

@@ -1,3 +1,9 @@
+import RTCConnection from "./rtcc";
+
+const rtcc = new RTCConnection({ gateway: 'ws://localhost' });
+
+window['rtcc'] = rtcc;
+
 /*
 type CardRank = 'Ace' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | 'Jack' | 'Queen' | 'King';
 type CardSuit = 'Clubs' | 'Diamonds' | 'Hearts' | 'Spades';

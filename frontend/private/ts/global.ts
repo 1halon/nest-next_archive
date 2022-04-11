@@ -125,72 +125,12 @@ export class IndexedDBManager extends EventEmitter {
     }
 }
 
-interface WSEvents {
-    ANSWER: { sdp: RTCSessionDescriptionInit };
-    'BULK_ICECANDIDATES': { candidates: RTCIceCandidateInit[] };
-    ICECANDIDATE: { candidate: RTCIceCandidate };
-    OFFER: { sdp: RTCSessionDescriptionInit };
-}
-
-export interface WSOptions {
-    debug?: boolean | string;
-    protocols?: string | string[];
-}
-
 export class WS extends WebSocket {
-    constructor(url: string | URL, options?: WSOptions) {
-        super(url, options?.protocols ?? []);
-        this.events = {};
-        Object.defineProperty(this, 'options', {
-            value: ops<WSOptions>(options, {
-                debug: {
-                    default: !1,
-                    type: ['boolean', 'string']
-                },
-                protocols: {
-                    default: [],
-                    type: ['object', 'string']
-                }
-            }), writable: !1
-        });
-        if (this.options.debug) {
-            const start = Date.now();
-            this.logger = new Logger(`WS${typeof options?.debug === 'string' && options?.debug !== '' ? `<${options?.debug}>` : ''}`);
-            this.logger.debug(`[CONNECT] ${url}`);
-
-            this.addEventListener('close', () => this.logger.debug(`[CLOSED] ${url}`));
-            this.addEventListener('message', async ({ data }) =>
-                this.logger.debug('[RECEIVE]', [await new Promise((resolve) => resolve(JSON.parse(data))).catch(() => data) as any]));
-            this.addEventListener('open', () => this.logger.debug(`[CONNECTED] ${url} in ${Date.now() - start} ms`));
-        }
-
-        this.addEventListener('message', async ({ data }) => {
-            const message = await new Promise((resolve) => resolve(JSON.parse(data))).catch(() => data) as any;
-
-            typeof message === 'object'
-                && !Array.isArray(message)
-                && typeof message.event === 'string'
-                && this.events.hasOwnProperty(message.event)
-                && message.hasOwnProperty('data')
-                && this.events[message.event](message.data);
-        });
-    }
-
-    private events: any;
-    public logger: Logger | null;
-    private readonly options: WSOptions;
-
-    close(code?: number, reason?: string): void {
-        if (this.options.debug) this.logger.debug(`[CLOSED] ${this.url}`);
-        WebSocket.prototype.send.apply(this, [code, reason]);
-    }
-
-    on<K extends keyof WSEvents>(event: K, listener: (data: WSEvents[K]) => void) {
-        this.events[event] = listener;
+    constructor(url: string | URL, protocols?: string | string[]) {
+        super(url, protocols ?? []);
     }
 
     send(data: string | object | ArrayBufferLike | Blob | ArrayBufferView): void {
-        if (this.options.debug) this.logger.debug('[SEND]', [data]);
         if (typeof data === 'object') data = JSON.stringify(data);
         WebSocket.prototype.send.apply(this, [data]);
     }
@@ -204,6 +144,6 @@ export function injectClassNames(object: object) {
             }
 }
 
-if (navigator.serviceWorker) navigator.serviceWorker.register('assets/service-worker.js').catch(e => void e);
+//if (navigator.serviceWorker) navigator.serviceWorker.register('assets/service-worker.js').catch(e => void e);
 
 window['logger'] = new Logger('Window');

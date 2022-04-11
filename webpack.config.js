@@ -89,7 +89,7 @@ module.exports = (env, argv) => {
       new RemoveEmptyScriptsPlugin(),
       new SubresourceIntegrityPlugin(),
       mode === 'development' && 
-      (new webpack.HotModuleReplacementPlugin() && new WorkboxPlugin.InjectManifest({ swSrc: 'service-worker.js', exclude: [/LICENSE.txt/i] })) || 
+      (new webpack.HotModuleReplacementPlugin()) || 
       (new WebpackObfuscator() && new WorkboxPlugin.GenerateSW({ cleanupOutdatedCaches: true, disableDevLogs: true, exclude: [/LICENSE.txt/i] })),
     ].filter(Boolean),
     resolve: { extensions: EXTENSIONS },

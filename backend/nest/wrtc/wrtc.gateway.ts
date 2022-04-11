@@ -21,7 +21,7 @@ export class WrtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   handleDisconnect(ws: WebSocket) {
-    if (ws['id']) var filter = client => client.ws['id'] === ws['id'];
+    if (ws['id']) var filter = client => client?.socket.ws['id'] === ws['id'];
     else var filter = client => JSON.stringify(client.ws) === JSON.stringify(ws);
     if (filter) var client = Object.values(this.wrtcService.clients).find(filter);
     if (client instanceof WrtcService.Client) {
