@@ -1,8 +1,8 @@
 import EventEmitter from 'events';
-import { createWRTC, ops } from '../../../shared/ts/global';
+import { ops } from '../../../shared/ts/global';
 import { v4 } from 'uuid';
-import { Logger, WS } from './global';
-import { CommClient, SignalingSocket } from '../../../shared/ts/comm-client';
+import { WS } from './global';
+import { CommClient } from '../../../shared/ts/comm-client';
 
 interface AudioInfo {
     dB: number;
@@ -74,7 +74,9 @@ export default class RTCConnection extends EventEmitter {
             }
         });
         this.comm = new CommClient(this.id,
-            new SignalingSocket(new WS(options.gateway + `?id=${this.id}&transport=${this.options.transport}`)), { target: 'CLIENT' });
+            new CommClient.SignalingSocket(new WS(options.gateway + `?id=${this.id}&transport=${this.options.transport}`)), { target: 'CLIENT' });
+
+        this.createAudio().catch(e => void e);
     };
 
     public audio: Audio;
@@ -86,6 +88,10 @@ export default class RTCConnection extends EventEmitter {
     private readonly options: RTCCOptions;
 
     public createAudio() {
+        return new Promise<Audio>((resolve, reject) => { this.createAudioSync(function (audio, err) { if (err) reject(err); else resolve(audio); }); });
+    }
+
+    public createAudioSync(callback?: (audio: Audio, err?: Error | null) => void) {
         navigator.mediaDevices.getUserMedia({ audio: true }).then((_stream => {
             this.audio.context = new AudioContext(); let { audio: { _, context, info } } = this; _.analyser = context.createAnalyser();
             _.analyser.channelCount = 1; _.analyser.fftSize = 64; _.analyser.maxDecibels = 0; _.analyser.smoothingTimeConstant = .5;
@@ -110,19 +116,30 @@ export default class RTCConnection extends EventEmitter {
             _.source = context.createMediaStreamSource(_stream);
             _.stream = _stream;
             _.source.connect(_.analyser);
-        })).catch(e => void e);
+            callback instanceof Function && callback(this.audio, null);
+        })).catch(e => callback instanceof Function && callback(null, e));
     }
 
     public createCam() {
+        return new Promise<Cam>((resolve, reject) => { this.createAudioSync(function (cam, err) { if (err) reject(err); else resolve(cam); }); });
+    }
+
+    public createCamSync(callback?: (cam: Cam, err?: Error | null) => void) {
         navigator.mediaDevices.getUserMedia({ video: true }).then((_stream => {
             // TODO
-        })).catch(e => void e);
+            callback instanceof Function && callback(this.cam, null);
+        })).catch(e => callback instanceof Function && callback(null, e));
     }
 
     public createDisplay() {
+        return new Promise<Display>((resolve, reject) => { this.createAudioSync(function (display, err) { if (err) reject(err); else resolve(display); }); });
+    }
+
+    public createDisplaySync(callback?: (display: Display, err?: Error | null) => void) {
         navigator.mediaDevices.getDisplayMedia({ audio: true, video: true }).then((_stream => {
             // TODO
-        })).catch(e => void e);
+            callback instanceof Function && callback(this.display, null);
+        })).catch(e => callback instanceof Function && callback(null, e));
     }
 
     public emit<K extends keyof RTCCEvents>(eventName: K, ...args: RTCCEvents[K]): boolean {

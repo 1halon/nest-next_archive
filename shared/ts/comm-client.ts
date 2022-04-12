@@ -1,45 +1,55 @@
 import ws from 'ws';
 import wrtc from 'wrtc';
-import { createWRTC, ops, WRTC } from './global';
+import { ops } from './global';
 import EventEmitter from 'events';
 import { WS } from 'frontend/private/ts/global';
 
-export interface CommClientOptions {
-    'rtc-config'?: RTCConfiguration;
-    target: 'CLIENT' | 'SERVER';
-    transport?: 'DATACHANNEL' | 'DEFAULT';
+export interface WRTC extends RTCPeerConnection {
+    candidates: RTCIceCandidate[];
+    channels: Record<string, RTCDataChannel>;
+    negotiation_status: boolean;
 }
 
-export class CommClient extends EventEmitter {
-    constructor(id: string, socket: SignalingSocket, options: CommClientOptions) {
-        super();
-        options = ops<CommClientOptions>(options, {
-            'rtc-config': { type: 'object', default: {} },
-            target: { type: 'string', properties: { required: true } },
-            transport: { type: 'string', default: 'DEFAULT' }
-        }, false);
-        this.connection = createWRTC.apply(this, [options.target === 'CLIENT' ? RTCPeerConnection : wrtc.RTCPeerConnection, options['rtc-config']]);
-        Object.defineProperties(this, {
-            id: { value: id, writable: !1 },
-            options: { value: options, writable: !1 },
+function createWRTC(p0, configuration?: RTCConfiguration): WRTC {
+    const connection = new p0(configuration) as WRTC,
+        candidates = connection.candidates = [],
+        channels = connection.channels = {};
+    let negotiation_status = connection.negotiation_status = !1;
+
+    // TODO
+    connection.addEventListener('connectionstatechange', async () => {
+
+    });
+    // TODO
+    connection.addEventListener('datachannel', async ({ channel }) => {
+        channel.addEventListener('close', async () => delete channels[channel.label]);
+        channel.addEventListener('error', async () => {
+
         });
-        this.socket = socket;
+        channel.addEventListener('message', async ({ data, origin, ports, source }) => {
 
-        socket.on('ANSWER', async (sdp) => await this.connection.setRemoteDescription(sdp).catch(e => void e));
-        socket.on('BULK_ICECANDIDATES', (candidates) =>
-            candidates.forEach(async candidate => await this.connection.addIceCandidate(candidate).catch(e => void e)));
-        socket.on('ICECANDIDATE', async (candidate) => await this.connection.addIceCandidate(candidate).catch(e => void e));
-        socket.on('OFFER', async (sdp) => this.connection.setRemoteDescription(sdp).then(async () => {
-            await this.connection.setLocalDescription(await this.connection.createAnswer());
-            socket.send({ event: 'ANSWER', data: { sdp: this.connection.localDescription } });
-        }).catch(e => void e));
-    };
+        });
+        channel.addEventListener('open', async () => channels[channel.label] = channel);
+    });
+    connection.addEventListener('icecandidate', async ({ candidate }) =>
+        candidate &&
+            connection.connectionState === 'connected' ?
+            this.socket.send({ event: 'ICECANDIDATE', data: { candidate } }) :
+            candidates.push(candidate));
+    connection.addEventListener('negotiationneeded', async () => {
+        if (!negotiation_status) {
+            negotiation_status = !0;
+            await this.connection.setLocalDescription(await this.connection.createOffer());
+            this.socket.send({ event: 'OFFER', data: { sdp: this.connection.localDescription } });
+            negotiation_status = !1;
+        }
+    });
+    // TODO
+    connection.addEventListener('track', async ({ streams }) => {
 
-    public connection: WRTC;
-    public readonly id: string;
-    public socket: SignalingSocket;
+    });
 
-    private readonly options: CommClientOptions;
+    return connection;
 }
 
 export enum SignalingSocketState { }
@@ -58,12 +68,12 @@ export interface SignalingSocketMessageEvents {
     OFFER: [sdp: RTCSessionDescriptionInit];
 }
 
-export interface SignalingSocketOptions {}
+export interface SignalingSocketOptions { }
 
-export class SignalingSocket extends EventEmitter {
+class SignalingSocket extends EventEmitter {
     constructor(ws: WS | ws, options?: SignalingSocketOptions) {
         super();
-        options = ops<SignalingSocketOptions>(options, { });
+        options = ops<SignalingSocketOptions>(options, {});
         Object.defineProperty(this, 'options', { value: options, writable: !1 });
         this.ws = ws as WS;
 
@@ -91,7 +101,7 @@ export class SignalingSocket extends EventEmitter {
 
     public ws: WS | ws;
 
-    private options: SignalingSocketOptions;
+    private readonly options: SignalingSocketOptions;
 
     public close(code?: number, reason?: string) {
         if (this.ws instanceof WebSocket) this.ws.close(code, reason);
@@ -114,4 +124,44 @@ export class SignalingSocket extends EventEmitter {
         // @ts-ignore
         this.ws.send(data, options, cb);
     }
+}
+
+export interface CommClientOptions {
+    'rtc-config'?: RTCConfiguration;
+    target: 'CLIENT' | 'SERVER';
+    transport?: 'DATACHANNEL' | 'DEFAULT';
+}
+
+export class CommClient extends EventEmitter {
+    constructor(id: string, socket: SignalingSocket, options: CommClientOptions) {
+        super();
+        options = ops<CommClientOptions>(options, {
+            'rtc-config': { type: 'object', default: {} },
+            target: { type: 'string', properties: { required: !0 } },
+            transport: { type: 'string', default: 'DEFAULT' }
+        }, false);
+        this.connection = createWRTC.apply(this, [options.target === 'CLIENT' ? RTCPeerConnection : wrtc.RTCPeerConnection, options['rtc-config']]);
+        Object.defineProperties(this, {
+            id: { value: id, writable: !1 },
+            options: { value: options, writable: !1 },
+        });
+        this.socket = socket.on('ANSWER', async (sdp) => await this.connection.setRemoteDescription(sdp).catch(e => void e))
+            .on('BULK_ICECANDIDATES', (candidates) =>
+                candidates.forEach(async candidate => await this.connection.addIceCandidate(candidate).catch(e => void e)))
+            .on('ICECANDIDATE', async (candidate) => await this.connection.addIceCandidate(candidate).catch(e => void e))
+            .on('OFFER', async (sdp) => this.connection.setRemoteDescription(sdp).then(async () => {
+                await this.connection.setLocalDescription(await this.connection.createAnswer());
+                socket.send({ event: 'ANSWER', data: { sdp: this.connection.localDescription } });
+            }).catch(e => void e));
+    };
+
+    public static SignalingSocket = SignalingSocket;
+
+    private static createWRTC = createWRTC;
+
+    public connection: WRTC;
+    public readonly id: string;
+    public socket: SignalingSocket;
+
+    private readonly options: CommClientOptions;
 }

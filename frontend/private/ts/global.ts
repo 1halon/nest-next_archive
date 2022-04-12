@@ -1,55 +1,6 @@
 import { ops } from '../../../shared/ts/global';
 import { EventEmitter } from 'events';
 
-export class Logger {
-    constructor(title?: string) {
-        this.title = title;
-    }
-    private title;
-
-    debug(message: any, args?: any[], title?: string);
-    debug(data: { args: [], message: any, title?: string });
-    debug(p0, p1?, p2?) {
-        const data = { args: [], message: '', title: this.title } as any;
-        switch (typeof p0) {
-            case 'object':
-                if (objectsHaveSameKeys(p0, data))
-                    Object.keys(p0).forEach(key => data[key] = p0[key]);
-                else _default(this.title);
-
-                // https://stackoverflow.com/a/68588846/16313645
-                function objectsHaveSameKeys(...objects) {
-                    let union = new Set();
-                    union = objects.reduce((keys, object) => keys.add(Object.keys(object)), union);
-                    if (union.size === 0) return true
-                    if (!objects.every((object) => union.size === Object.keys(object).length)) return false
-
-                    for (let key of union.keys() as IterableIterator<any>) {
-                        let res = objects.map((o) => (typeof o[key] === 'object' ? o[key] : {}))
-                        if (!objectsHaveSameKeys(...res)) return false;
-                    }
-                    return true
-                }
-                break;
-
-            default:
-                _default(this.title);
-                break;
-        }
-
-        console.log(`%c[${data.title}]`, 'color: purple;', data.message, ...data.args);
-        function _default(title) {
-            data.args = p1 ?? []; data.message = p0 ?? ''; data.title = p2 ?? title;
-        }
-    }
-
-    error() { console.error.apply(this, arguments); }
-
-    log() { console.log.apply(this, arguments); }
-
-    warn() { console.warn.apply(this, arguments); }
-}
-
 enum IndexedDBState {
     FAILED,
     SUCCESS
@@ -132,7 +83,7 @@ export class WS extends WebSocket {
 
     send(data: string | object | ArrayBufferLike | Blob | ArrayBufferView): void {
         if (typeof data === 'object') data = JSON.stringify(data);
-        WebSocket.prototype.send.apply(this, [data]);
+        return WebSocket.prototype.send.apply(this, [data]);
     }
 }
 
@@ -145,5 +96,3 @@ export function injectClassNames(object: object) {
 }
 
 //if (navigator.serviceWorker) navigator.serviceWorker.register('assets/service-worker.js').catch(e => void e);
-
-window['logger'] = new Logger('Window');
