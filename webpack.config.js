@@ -44,8 +44,7 @@ module.exports = (env, argv) => {
         { loader: 'babel-loader', test: /\.js[x]?$/i },
         { test: /\.json$/i, type: 'asset/resource' },
         { test: /\.s[ac]ss$/i, use: css_loader.concat('sass-loader') },
-        { loader: 'babel-loader', test: /\.ts[x]?$/i },
-        { loader: 'worker-loader', options: { name: '[contenthash].worker.js' }, test: /\.worker\.js$/i }
+        { loader: 'babel-loader', test: /\.ts[x]?$/i }
       ]
     },
     node: false,
