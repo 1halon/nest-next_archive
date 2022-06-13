@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CommClient } from 'shared/ts/comm-client';
+import { CommClient } from '../../../shared/ts/comm-client';
 
 @Injectable()
 export class WrtcService {

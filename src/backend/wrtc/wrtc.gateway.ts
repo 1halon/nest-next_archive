@@ -1,7 +1,7 @@
 import { OnGatewayConnection, OnGatewayDisconnect, WebSocketGateway } from '@nestjs/websockets';
 import { randomUUID } from 'crypto';
 import { IncomingMessage } from 'http';
-import { CommClient, CommClientOptions } from 'shared/ts/comm-client';
+import { CommClient, CommClientOptions } from '../../../shared/ts/comm-client';
 import { Server, WebSocket } from 'ws';
 import { WrtcService } from './wrtc.service';
 

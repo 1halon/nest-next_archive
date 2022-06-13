@@ -2,8 +2,8 @@ import { Body, Controller, HttpCode, HttpException, Post, Query, Res, Req } from
 import { JwtService } from '@nestjs/jwt';
 import { compareSync } from 'bcrypt';
 import { Response, Request } from 'express';
-import { TemplateService } from 'backend/nest/template/template.service';
-import { CreationDto, User, UserService } from 'backend/nest/user/user.service';
+import { TemplateService } from '../../template/template.service';
+import { CreationDto, User, UserService } from '../../user/user.service';
 import { AuthServiceV1, LoginDto } from './auth.service';
 
 @Controller({ host: 'localhost', path: 'api/v1/auth' })
