@@ -22,8 +22,8 @@ import { EjsAdapter } from "@nestjs-modules/mailer/dist/adapters/ejs.adapter";
 import { UserModule } from "./user/user.module";
 import { ApiModule } from "./api/api.module";
 import { WrtcModule } from "./wrtc/wrtc.module";
-import { RenderModule } from 'nest-next';
-import Next from 'next';
+import { RenderModule } from "nest-next";
+import Next from "next";
 
 @Module({
   imports: [
@@ -45,7 +45,7 @@ import Next from 'next';
       },
     }),
     MongooseModule.forRoot(process.env.MONGODB, { dbName: "meet" }),
-    RenderModule.forRootAsync(Next({})),
+    RenderModule.forRootAsync(Next({ dev: true }), { viewsDir: null }),
     ThrottlerModule.forRoot({
       ttl: 60,
       limit: 10,

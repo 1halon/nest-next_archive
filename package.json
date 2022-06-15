@@ -85,17 +85,18 @@
     "@types/node": "latest",
     "@types/passport-jwt": "latest",
     "@types/passport-local": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
     "@types/request-ip": "latest",
     "@types/supertest": "latest",
     "@types/ws": "latest",
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
     "@typescript-eslint/eslint-plugin": "latest",
     "@typescript-eslint/parser": "latest",
     "babel-loader": "latest",
     "clean-webpack-plugin": "latest",
     "css-loader": "latest",
     "css-minimizer-webpack-plugin": "latest",
+    "eslint": "^8.17.0",
     "eslint-config-next": "latest",
     "file-loader": "latest",
     "html-loader": "latest",
@@ -139,8 +140,8 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/backend/main",
     "start:next": "next dev",
-    "webpack": "npx webpack",
-    "webpack:dev": "npx webpack -w --mode development"
+    "webpack": "webpack",
+    "webpack:dev": "webpack -w --mode development"
   },
   "version": "1.0.0"
 }

@@ -13,7 +13,6 @@
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": false,
-    "noEmit": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
@@ -21,5 +20,6 @@
     "esModuleInterop": true,
     "jsx": "preserve"
   },
-  "exclude": ["dist", "src/fronted/public", "node_modules"]
+  "exclude": ["dist", "node_modules"],
+  "include": ["src"]
 }

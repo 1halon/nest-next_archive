@@ -1,4 +1,5 @@
 # compiled output
+.next
 dist
 node_modules
 frontend/public

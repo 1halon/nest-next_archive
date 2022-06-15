@@ -150,8 +150,8 @@ module.exports = (env, argv) => {
       resolve: {
         extensions: EXTENSIONS,
         fallback: {
-          events: false
-        }
+          events: false,
+        },
       },
       watch: false,
       watchOptions: {
