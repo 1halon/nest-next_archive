@@ -45,7 +45,7 @@ import Next from "next";
       },
     }),
     MongooseModule.forRoot(process.env.MONGODB, { dbName: "meet" }),
-    RenderModule.forRootAsync(Next({ dev: true }), { viewsDir: null }),
+    //RenderModule.forRootAsync(Next({ dev: true }), { viewsDir: null }),
     ThrottlerModule.forRoot({
       ttl: 60,
       limit: 10,

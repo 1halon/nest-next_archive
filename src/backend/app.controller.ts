@@ -18,9 +18,9 @@ export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
-  @Render("index")
+  //@Render("index")
   index(@Res() res: Response) {
-    //this.appService.sendFile(res, 'index.html');
+    this.appService.sendFile(res, 'index.html');
     return {};
   }
 

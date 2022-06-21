@@ -1,9 +1,8 @@
-// ./src/pages/index.tsx
 import React from "react";
-import { FC } from 'react';
+import { FC } from "react";
 
 const Home: FC = () => {
-    return <></>
+  return <h1>ASD</h1>;
 };
 
 export default Home;

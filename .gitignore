@@ -2,7 +2,7 @@
 .next
 dist
 node_modules
-frontend/public
+src/frontend/public
 
 # Logs
 logs

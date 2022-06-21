@@ -25,6 +25,7 @@
     "@types/uuid": "latest",
     "argon2": "latest",
     "aws-sdk": "latest",
+    "axios": "^0.27.2",
     "bcrypt": "latest",
     "compression": "latest",
     "cookie-parser": "latest",
