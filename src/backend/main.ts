@@ -10,23 +10,24 @@ import userAgent from 'express-useragent';
 import { WsAdapter } from '@nestjs/platform-ws';
 
 NestFactory.create<NestExpressApplication>(AppModule).then(function (app) {
-  app.getHttpAdapter().useStaticAssets(join(process.cwd(), 'src/frontend/public'), { prefix: '/assets/' });
   app.enableCors({
     allowedHeaders: 'Accept,Authorization,Content-Type',
     credentials: true,
     methods: 'DELETE,GET,POST,PUT,OPTIONS,UPDATE',
-    origin: true
+    origin: true,
   });
   app.use(cookieParser(process.env.COOKIE_SECRET));
-  app.use(helmet({
-    contentSecurityPolicy: {
-      directives: {
-        'default-src': "'self'",
-        'style-src-elem': ["'self'", 'https://fonts.googleapis.com']
-      }
-    },
-    dnsPrefetchControl: { allow: true }
-  }));
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          'default-src': "'self'",
+          'style-src-elem': ["'self'", 'https://fonts.googleapis.com'],
+        },
+      },
+      dnsPrefetchControl: { allow: true },
+    })
+  );
   //app.use(limiter());
   app.use(requestIP.mw());
   app.use(userAgent.express());

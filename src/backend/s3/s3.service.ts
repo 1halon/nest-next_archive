@@ -39,8 +39,8 @@ export class S3Service {
           callback(
             null,
             `${options?.path ?? ''}${randomUUID().split('-').join('')}${extname(
-              file.originalname,
-            )}`,
+              file.originalname
+            )}`
           ),
         s3: s3,
       }),

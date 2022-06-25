@@ -1,5 +1,6 @@
 # compiled output
 .next
+cdn
 dist
 node_modules
 src/frontend/public

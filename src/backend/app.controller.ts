@@ -8,25 +8,25 @@ import {
   Req,
   Res,
   UseGuards,
-} from "@nestjs/common";
-import { Request, Response } from "express";
-import { AppService } from "./app.service";
-import { JwtAuthGuard } from "./auth/jwt-auth.guard";
+} from '@nestjs/common';
+import { Request, Response } from 'express';
+import { AppService } from './app.service';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
 
-@Controller({ host: "localhost" })
+@Controller({ host: 'localhost' })
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
-  //@Render("index")
+  @Render('index')
   index(@Res() res: Response) {
-    this.appService.sendFile(res, 'index.html');
+    //this.appService.sendFile(res, 'index.html');
     return {};
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get("app*")
+  @Get('app*')
   app(@Res() res: Response) {
-    this.appService.sendFile(res, "app.html");
+    this.appService.sendFile(res, 'app.html');
   }
 }

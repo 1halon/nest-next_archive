@@ -8,22 +8,23 @@ import {
   NestModule,
   NotFoundException,
   RequestMethod,
-} from "@nestjs/common";
-import { AppController } from "./app.controller";
-import { AppService } from "./app.service";
-import { AppMiddleware } from "./app.middleware";
-import { join } from "path";
-import { MongooseModule } from "@nestjs/mongoose";
-import { ThrottlerModule } from "@nestjs/throttler";
-import { AuthModule } from "./auth/auth.module";
-import { ConfigModule } from "@nestjs/config";
-import { MailerModule } from "@nestjs-modules/mailer";
-import { EjsAdapter } from "@nestjs-modules/mailer/dist/adapters/ejs.adapter";
-import { UserModule } from "./user/user.module";
-import { ApiModule } from "./api/api.module";
-import { WrtcModule } from "./wrtc/wrtc.module";
-import { RenderModule } from "nest-next";
-import Next from "next";
+} from '@nestjs/common';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { AppMiddleware } from './app.middleware';
+import { join } from 'path';
+import { MongooseModule } from '@nestjs/mongoose';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { AuthModule } from './auth/auth.module';
+import { ConfigModule } from '@nestjs/config';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { EjsAdapter } from '@nestjs-modules/mailer/dist/adapters/ejs.adapter';
+import { UserModule } from './user/user.module';
+import { ApiModule } from './api/api.module';
+import { WrtcModule } from './wrtc/wrtc.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { RenderModule } from 'nest-next';
+import Next from 'next';
 
 @Module({
   imports: [
@@ -35,17 +36,28 @@ import Next from "next";
         from: `"Meet" <${process.env.MAIL_ADDRESS}>`,
       },
       template: {
-        dir: join(process.cwd(), "client/private/templates/mail"),
+        dir: join(process.cwd(), 'client/private/templates/mail'),
         adapter: new EjsAdapter(),
         options: { strict: true },
       },
       transport: {
         auth: { user: process.env.MAIL_ADDRESS, pass: process.env.MAIL_PASS },
-        service: "gmail",
+        service: 'gmail',
       },
     }),
-    MongooseModule.forRoot(process.env.MONGODB, { dbName: "meet" }),
-    //RenderModule.forRootAsync(Next({ dev: true }), { viewsDir: null }),
+    MongooseModule.forRoot(process.env.MONGODB, { dbName: 'meet' }),
+    /*RenderModule.forRootAsync(
+      Next({ dev: process.env.NODE_ENV === "development" }),
+      { viewsDir: null }
+    ),*/
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), '.next'),
+      serveRoot: '/_next',
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'frontend', 'public'),
+      serveRoot: '/assets',
+    }),
     ThrottlerModule.forRoot({
       ttl: 60,
       limit: 10,
@@ -60,7 +72,7 @@ export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(AppMiddleware).forRoutes({
       method: RequestMethod.ALL,
-      path: "/*",
+      path: '/*',
     });
   }
 }

@@ -2,7 +2,7 @@ import ws from 'ws';
 import wrtc from 'wrtc';
 import { ops } from './global';
 import EventEmitter from 'events';
-import { WS } from '../../frontend/private/ts/global';
+import { WS } from '../../frontend/ts/global';
 
 export interface WRTC extends RTCPeerConnection {
     candidates: RTCIceCandidate[];

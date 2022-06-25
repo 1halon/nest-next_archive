@@ -3,6 +3,6 @@ import { WrtcService } from './wrtc.service';
 import { WrtcGateway } from './wrtc.gateway';
 
 @Module({
-  providers: [WrtcService, WrtcGateway]
+  providers: [WrtcService, WrtcGateway],
 })
 export class WrtcModule {}

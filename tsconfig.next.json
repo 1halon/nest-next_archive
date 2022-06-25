@@ -1,19 +1,14 @@
 {
   "extends": "./tsconfig.json",
-  "include": [
-    "src/pages"
-  ],
+  "include": ["src/pages", "declaration.d.ts"],
   "compilerOptions": {
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "strict": false,
     "noEmit": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve"
+    "jsx": "preserve",
+    "plugins": [{ "name": "typescript-plugin-css-modules" }]
   }
 }

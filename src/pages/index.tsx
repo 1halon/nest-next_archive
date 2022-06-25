@@ -1,8 +1,7 @@
-import React from "react";
-import { FC } from "react";
+import React, { FC } from "react"
 
-const Home: FC = () => {
-  return <h1>ASD</h1>;
-};
+const Index: FC = () => {
+  return <></>
+}
 
-export default Home;
+export default Index
