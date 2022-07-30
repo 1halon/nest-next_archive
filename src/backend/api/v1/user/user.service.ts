@@ -1,80 +1,59 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import type {
+  RedisClientType,
+  RedisFunctions,
+  RedisModules,
+  RedisScripts,
+} from '@redis/client';
 import { hashSync } from 'bcrypt';
 import { generate } from 'generate-password';
-import {
-  CallbackWithoutResultAndOptionalError,
-  Document,
-  Model,
-  Types,
-} from 'mongoose';
+import { Document, Model } from 'mongoose';
 import { User } from './user.schema';
 
-export interface CreateDTO {
-  display_name?: string;
-  email: string;
+interface CreationDTO {
   username: string;
+  /**
+   * @default username
+   */
+  display_name?: string;
 }
 
 @Injectable()
 export default class UserService {
-  constructor(@InjectModel('User') public readonly model: Model<User>) {
-    model.schema.pre('save', prehook);
-    model.schema.pre('validate', prehook);
-
-    async function prehook(
-      this: Document<unknown, any, User> &
-        User & {
-          _id: Types.ObjectId;
-        },
-      next: CallbackWithoutResultAndOptionalError,
-    ) {
-      model
-        .find({ email: this.email })
-        .then(({ length }) => {
-          console.log(length);
-          if (length >= 2) {
-            const message =
-              "Can't have the same email for more than 5 accounts.";
-            this.invalidate('email', message);
-            next(new Error(message));
-          } else next();
-        })
-        .catch(console.log);
-    }
+  constructor(
+    @InjectModel('User') public readonly model: Model<User>,
+    @Inject('REDIS_CLIENT')
+    private readonly redis: RedisClientType<
+      RedisModules,
+      RedisFunctions,
+      RedisScripts
+    >,
+  ) {
+    this.create({ username: 'halon' });
   }
 
   static readonly salt = process.env['HASH_SALT'];
   static readonly tempass_length = 32;
 
-  async create({
-    email,
-    username,
-    display_name,
-  }: CreateDTO): Promise<
-    [model: Document<unknown, any, User> & User, pass: string]
+  async create(
+    creation_dto: CreationDTO,
+  ): Promise<
+    [model: Document<unknown, any, User> & User, pass: string, hSet: Function]
   > {
+    let { username, display_name } = creation_dto ?? {};
     if (!display_name) display_name = username;
-    await this.model
-      .validate({ display_name, email, username })
-      .catch((error) => {
-        const { display_name, email, username } = error.errors;
-        if (display_name) var message = display_name.message;
-        else if (email) var message = email.message;
-        else if (username) var message = username.message;
-        if (message) throw new Error(message);
+
+    const [hash, pass] = this.tempass(),
+      model = new this.model({
+        display_name,
+        username,
       });
 
-    const [hash, pass] = this.tempass();
-
     return [
-      new this.model({
-        display_name,
-        email,
-        username,
-        token: hash,
-      }),
+      model,
       pass,
+      this.redis.hSet.bind(this.redis, 'HASH', model.id, hash),
     ];
   }
 

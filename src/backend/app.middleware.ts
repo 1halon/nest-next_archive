@@ -1,5 +1,6 @@
-import { Injectable, NestMiddleware } from '@nestjs/common';
-import { Request, Response, NextFunction } from 'express';
+import { Injectable } from '@nestjs/common';
+import type { NestMiddleware } from '@nestjs/common';
+import type { Request, Response, NextFunction } from 'express';
 
 @Injectable()
 export class AppMiddleware implements NestMiddleware {
@@ -42,7 +43,7 @@ declare global {
     }
 
     type toJSONIgnore = 'clientIP' | 'validate' | 'toJSON' | 'toString';
-    
+
     interface Identifier {
       agent: {
         browser: string;

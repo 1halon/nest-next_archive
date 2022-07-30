@@ -9,6 +9,6 @@ import UserModule from './user/user.module';
   imports: [UserModule],
   controllers: [ApiController, AuthController],
   exports: [ApiService, AuthService],
-  providers: [ApiService, AuthService],
+  providers: [ApiService, AuthService, Function],
 })
 export class ApiModuleV1 {}

@@ -16,6 +16,7 @@ import { AuthModule } from './auth/auth.module';
 import Next from 'next';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AppMiddleware } from './app.middleware';
+import { RedisModule } from './redis.module';
 
 @Module({
   controllers: [AppController],

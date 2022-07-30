@@ -1,6 +1,6 @@
 import { Controller, Get, Render, Req, Res } from '@nestjs/common';
-import { Request } from 'express';
-import { RenderableResponse } from 'nest-next';
+import type { Request } from 'express';
+import type { RenderableResponse } from 'nest-next';
 import { GetMode } from 'src/shared/';
 import { AppService } from './app.service';
 
