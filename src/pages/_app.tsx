@@ -28,7 +28,7 @@ export default function App({ Component, pageProps }) {
     <Provider store={store}>
       <Head>
         <meta name="viewport" content="initial-scale=1, width=device-width" />
-        <title>Rooms</title>
+        <title>nest-next-example</title>
       </Head>
       <ThemeProvider theme={theme}>
         <CssBaseline />

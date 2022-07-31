@@ -38,10 +38,6 @@ export class AppMiddleware implements NestMiddleware {
 
 declare global {
   namespace Express {
-    interface Request {
-      identifier?: Identifier;
-    }
-
     type toJSONIgnore = 'clientIP' | 'validate' | 'toJSON' | 'toString';
 
     interface Identifier {
@@ -57,6 +53,10 @@ declare global {
       validate?(): boolean;
       toString(): string;
       toJSON(text: string): Omit<Identifier, toJSONIgnore>;
+    }
+
+    interface Request {
+      identifier?: Identifier;
     }
   }
 }

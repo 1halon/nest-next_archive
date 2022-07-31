@@ -7,10 +7,10 @@ import {
   Post,
   Res,
 } from '@nestjs/common';
-import assert from 'assert';
 import type { Response } from 'express';
 import { GetMode } from 'src/shared/';
 import UserService from '../user/user.service';
+import type { CreationDTO } from '../user/user.service';
 import AuthService from './auth.service';
 
 @Controller({
@@ -23,27 +23,16 @@ export default class AuthController {
     private readonly userService: UserService,
   ) {}
 
-  @Get('login')
-  login() {
-    
-  }
+  @Post('login')
+  login() {}
 
   @Post('register')
-  register(
-    @Res() response: Response,
-    @Body() body: { display_name?: string; username: string },
-  ) {
-    const { display_name, username } = body;
-
+  register(@Res() response: Response, @Body() body: CreationDTO) {
     this.userService
-      .create({ display_name, username })
-      .then(async function ([model, pass, hSet]) {
-        const user = await model.save();
-        hSet();
-        response.status(HttpStatus.OK).send(pass);
+      .create(body)
+      .then(([user, pass, hSet]) => {
+        response.send(pass);
       })
-      .catch((error) =>
-        response.status(HttpStatus.BAD_REQUEST).send(error.message),
-      );
+      .catch(response.status(HttpStatus.BAD_REQUEST).send.bind(response));
   }
 }

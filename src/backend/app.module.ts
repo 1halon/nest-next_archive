@@ -16,14 +16,13 @@ import { AuthModule } from './auth/auth.module';
 import Next from 'next';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AppMiddleware } from './app.middleware';
-import { RedisModule } from './redis.module';
 
 @Module({
   controllers: [AppController],
   imports: [
     //ConfigModule.forRoot({ envFilePath: 'src/backend/.env' }),
     ApiModule,
-    //AuthModule,
+    AuthModule,
     MongooseModule.forRoot(process.env['MONGODB'], { dbName: 'nest-next-example' }),
     /*RenderModule.forRootAsync(
       Next({ dev: process.env['NODE_ENV'] === 'development' }),
@@ -48,7 +47,7 @@ export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(AppMiddleware).forRoutes({
       method: RequestMethod.ALL,
-      path: '*',
+      path: '/api/*',
     });
   }
 }

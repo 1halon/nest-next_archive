@@ -1,8 +1,8 @@
-import { FC } from "react"
-import { Button } from "@mui/material"
+import { FC, useEffect, useState } from "react"
+import { instance } from "./_app"
 
 const Index: FC = () => {
-  return <Button variant="contained">Hello World</Button>
+  return <></>
 }
 
 export default Index
