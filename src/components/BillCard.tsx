@@ -72,6 +72,7 @@ export const billCardTypes = [
   "İNTERNET",
   "KİRA",
   "SU",
+  "TELEFON",
 ] as const;
 export type billCardTypes = typeof billCardTypes[number];
 
@@ -302,23 +303,31 @@ const BillCard = (props: any) => {
                 <Tooltip title="Kaydet">
                   <span>
                     {(loading && <CircularProgress />) || <SaveOutlined />}
+                    <LoadingButton
+                      //disabled={loading}
+                      loading={loading}
+                      sx={{ ml: "auto" }}
+                      onClick={() => {
+                        setExpanded(false);
+                        setLoading(true);
+                      }}
+                    >
+                      Kaydet
+                    </LoadingButton>
                   </span>
                 </Tooltip>
               </IconButton>
             )) || (
-              <IconButton
+              <Button
+                disabled={loading}
                 sx={{ ml: "auto" }}
                 onClick={() => {
                   setExpanded(false);
                   states.editable.set(false);
                 }}
               >
-                <Tooltip title="İptal">
-                  <span>
-                    <CancelOutlined />
-                  </span>
-                </Tooltip>
-              </IconButton>
+                İptal
+              </Button>
             )}
           </>
         )) || (

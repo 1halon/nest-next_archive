@@ -17,6 +17,8 @@ import {
 import { blue, deepOrange, green, grey, lightBlue } from "@mui/material/colors";
 import { AddOutlined, Check, PageviewOutlined } from "@mui/icons-material";
 import { useState } from "react";
+import { add } from "../reducers/billcard";
+import { useDispatch, useSelector } from "react-redux";
 
 type Props = {
   name: string;
@@ -25,6 +27,10 @@ type Props = {
 const Navigation = ({ name }: Props) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [savedFilter, setSavedFilter] = useState(false);
+
+  const { counts } = useSelector((state: any) => state.billcard);
+
+  const dispatch = useDispatch();
 
   return (
     <AppBar position="static" sx={{ margin: "2.5vh 0 0" }}>
@@ -48,10 +54,6 @@ const Navigation = ({ name }: Props) => {
             {name && `Hoş Geldin ${name}`}
           </Typography>
 
-          <Box />
-          <Box />
-          <Box />
-
           <Typography
             noWrap
             sx={{
@@ -61,14 +63,18 @@ const Navigation = ({ name }: Props) => {
               letterSpacing: ".3rem",
               color: "inherit",
               textDecoration: "none",
+              ml: "auto",
+              pr: "1rem",
             }}
           >
-            12/855
+            {counts.filtered}/{counts.total}
           </Typography>
 
           <Box sx={{ flexGrow: 0 }}>
             <IconButton
-              onClick={({ currentTarget }) => console.log([currentTarget])}
+              onClick={({ currentTarget }) =>
+                dispatch(add({ props: { editable: true } }))
+              }
               sx={{ p: 0, mr: "2vh" }}
             >
               <Tooltip title="Oluştur">
