@@ -53,6 +53,8 @@ import { styled } from "@mui/material/styles";
 import { DateTime } from "luxon";
 import { DesktopDatePicker } from "@mui/x-date-pickers";
 import { instance } from "../../pages/_app";
+import { useDispatch } from "react-redux";
+import { remove } from "../reducers/billcard";
 
 const ExpandMore = styled((props: { expand: boolean } & IconButtonProps) => {
   const { expand, ...other } = props;
@@ -65,7 +67,7 @@ const ExpandMore = styled((props: { expand: boolean } & IconButtonProps) => {
   }),
 }));
 
-export const billCardTypes = [
+export const types = [
   "AİDAT",
   "ELEKTRİK",
   "GAZ",
@@ -74,16 +76,22 @@ export const billCardTypes = [
   "SU",
   "TELEFON",
 ] as const;
-export type billCardTypes = typeof billCardTypes[number];
+export type Types = typeof types[number];
 
+export const props = {
+  createdBy: null as string,
+  date: Date.now(),
+  description: null as string,
+  editable: false,
+  id: null as string,
+  get receipt() {
+    if (this.id) return `/cdn/receipts/${this.id}.pdf`;
+  },
+  saved: false,
+  type: types[0] as Types,
+};
 export type Props = {
-  date?: number;
-  description?: string;
-  editable?: boolean;
-  id?: string;
-  receipt?: string;
-  saved?: boolean;
-  type?: billCardTypes;
+  [key in keyof typeof props]?: typeof props[key];
 };
 
 type States = {
@@ -93,17 +101,23 @@ type States = {
   };
 };
 
-const BillCard = (props: any) => {
-  const [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null),
+const BillCard = (_props: Partial<Props>) => {
+  const ref = useRef<HTMLDivElement>(),
+    dispatch = useDispatch(),
+    [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null),
     [changed, setChanged] = useState(false),
     [expanded, setExpanded] = useState(false),
     [loading, setLoading] = useState(false),
     [savedHovered, setSavedHovered] = useState(false),
     [upload, setUpload] = useState<any>();
+
   const states = {} as States;
+  props.id = _props?.id;
   for (const key in props) {
-    const prop = props[key] as Props[keyof Props],
+    const prop = _props[key] ?? props[key],
       [value, setValue] = useState(prop);
+
+    useEffect(() => setValue(prop), [prop]);
 
     // @ts-ignore
     states[key as keyof Props] = {
@@ -135,11 +149,30 @@ const BillCard = (props: any) => {
       upload && data.append("file", upload);
       data.delete("editable");
 
-      let request;
-
-      request = instance["post"]("upload", data).then((res) => {
-        console.log(res);
-      });
+      let request = instance[states.id?.value ? "patch" : "post"]("cards", data)
+        .then((res) => {
+          for (const key in res.data) {
+            const value = res.data[key];
+            value !== states[key].value && states[key].set(value);
+          }
+          setUpload(null);
+        })
+        .catch(
+          () =>
+            states.id?.value ||
+            dispatch(
+              remove({
+                props: {
+                  ...(function _(obj, keys, index) {
+                    const key = keys[index];
+                    obj[key] = states[key]?.value;
+                    if (index < keys.length) return _(obj, keys, index + 1);
+                    return obj;
+                  })({}, Object.keys(states), 0),
+                },
+              })
+            )
+        );
 
       request.finally(() => {
         setChanged(false);
@@ -150,7 +183,7 @@ const BillCard = (props: any) => {
   }, [loading]);
 
   return (
-    <Card sx={{ maxWidth: 345 }}>
+    <Card ref={ref} sx={{ maxWidth: 345 }}>
       <CardHeader
         avatar={
           !states.editable?.value && (
@@ -174,16 +207,16 @@ const BillCard = (props: any) => {
               disabled={loading}
               select
               label="Fatura Türü"
-              value={states.type?.value}
-              defaultValue={billCardTypes[0]}
+              value={states.type?.value ?? types[0]}
+              defaultValue={types[0]}
               fullWidth
               sx={{ mb: "1rem" }}
               onChange={({ target: { value } }) =>
-                states.type?.set(value as billCardTypes)
+                states.type?.set(value as Types)
               }
             >
-              {billCardTypes.map((type, index) => (
-                <MenuItem key={type} value={type}>
+              {types.map((type, index) => (
+                <MenuItem key={index} value={type}>
                   {type}
                 </MenuItem>
               ))}
@@ -270,6 +303,7 @@ const BillCard = (props: any) => {
                   );
                   setUpload(file);
                   input.remove();
+                  setChanged(true);
                 };
                 input.click();
               }}
@@ -292,31 +326,17 @@ const BillCard = (props: any) => {
             )}
 
             {(changed && (
-              <IconButton
-                disabled={loading}
+              <LoadingButton
+                //disabled={loading}
+                loading={loading}
                 sx={{ ml: "auto" }}
                 onClick={() => {
                   setExpanded(false);
                   setLoading(true);
                 }}
               >
-                <Tooltip title="Kaydet">
-                  <span>
-                    {(loading && <CircularProgress />) || <SaveOutlined />}
-                    <LoadingButton
-                      //disabled={loading}
-                      loading={loading}
-                      sx={{ ml: "auto" }}
-                      onClick={() => {
-                        setExpanded(false);
-                        setLoading(true);
-                      }}
-                    >
-                      Kaydet
-                    </LoadingButton>
-                  </span>
-                </Tooltip>
-              </IconButton>
+                Kaydet
+              </LoadingButton>
             )) || (
               <Button
                 disabled={loading}

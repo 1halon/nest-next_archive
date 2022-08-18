@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { Action } from ".";
-import BillCard, { Props } from "../components/BillCard";
+import BillCard from "../components/BillCard";
+import type { Props } from "../components/BillCard";
 
 export interface State {
   cards: Props[];
@@ -11,15 +12,7 @@ export interface State {
 export const billcard = createSlice({
   name: "billcard",
   initialState: {
-    cards: [
-      {
-        date: Date.now(),
-        description: "Açıklama",
-        receipt:
-          "https://ogmmateryal.eba.gov.tr/panel/upload/pdf/dtp0hwksxlx.pdf",
-        type: "AİDAT",
-      },
-    ],
+    cards: [],
     counts: {
       filtered: 0,
       total: 0,
@@ -33,6 +26,7 @@ export const billcard = createSlice({
     },
     cards: (state: State, action: Action<{ cards: State["cards"] }>) => {
       state.cards = action.payload.cards;
+      state.counts.total = state.cards.length;
     },
     counts: (
       state: State,
@@ -42,9 +36,19 @@ export const billcard = createSlice({
       if (typeof filtered === "number") state.counts.filtered = filtered;
       if (typeof total === "number") state.counts.total = total;
     },
+    remove: (state: State, action: Action<{ props: Props }>) => {
+      state.cards.splice(
+        state.cards.findIndex(
+          (card) =>
+            JSON.stringify(card) === JSON.stringify(action.payload.props)
+        ),
+        1
+      );
+      state.counts.total -= 1;
+    },
   },
 });
 
-export const { add, cards, counts } = billcard.actions;
+export const { add, cards, counts, remove } = billcard.actions;
 
 export default billcard.reducer;
