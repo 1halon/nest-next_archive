@@ -1,12 +1,19 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { File, IncomingForm } from "formidable";
-import { dirname, join } from "path";
+import { IncomingForm } from "formidable";
+import type { File } from "formidable";
+import { join } from "path";
 import { mkdirSync, readFileSync, writeFileSync } from "fs";
-import { randomUUID } from "crypto";
 import Redis from "ioredis";
+import { props } from "../../../src/components/BillCard";
 
 const receipts = join(process.cwd(), "public", "cdn", "receipts"),
-  redis = new Redis("192.168.1.16:6379");
+  redis = new Redis("192.168.1.16:6379"),
+  redis_connect = () => {
+    (["connecting", "reconnecting"] as typeof redis.status[]).includes(
+      redis.status
+    ) || redis.connect().catch(() => setTimeout(redis_connect, 5000));
+  },
+  props_keys = Object.keys(props);
 
 export async function get() {
   return (await redis.lrange("BILLS", 0, -1)).map((value) => JSON.parse(value));
@@ -16,67 +23,102 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  new IncomingForm({ maxFields: 10, maxFiles: 1 }).parse(
+  if (
+    (["close", "end", "wait"] as typeof redis.status[]).includes(redis.status)
+  )
+    return res.status(500).json(undefined);
+  const len = await redis.llen("BILLS");
+
+  new IncomingForm({ maxFields: 8, maxFiles: 1 }).parse(
     req,
     async (err, fields, files) => {
       if (err) res.status(404).send(err);
       let data;
-      console.log(fields.description);
-      fields.description === "null" && (fields.description = "");
-      data = { ...fields };
-      const file = files.file as File;
-      if (file) {
-        data.id = file.newFilename;
+      for (const key of Object.keys(fields).filter((key) =>
+        ["null", "undefined"].includes(fields[key] as string)
+      ))
         try {
-          mkdirSync(receipts, { recursive: true });
-          writeFileSync(
-            join(receipts, `${file.newFilename}.pdf`),
-            readFileSync(file.filepath)
-          );
-          data.receipt = `/cdn/receipts/${file.newFilename}.pdf`;
+          fields[key] = JSON.parse(fields[key] as string);
         } catch (error) {
-          return res.status(404).json({});
+          fields[key] = undefined;
+        }
+      data = { ...fields };
+
+      if (["PATCH", "POST"].includes(req.method)) {
+        const file = files.file as File;
+        if (file) {
+          try {
+            if (!data?.id) data.id = len + 1;
+            mkdirSync(receipts, { recursive: true });
+            writeFileSync(
+              join(receipts, `${data.id}.pdf`),
+              readFileSync(file.filepath)
+            );
+            data.receipt = `/cdn/receipts/${data.id}.pdf`;
+          } catch (error) {
+            return res.status(400).json(undefined);
+          }
         }
       }
 
       let status = 200,
         body;
 
-      const len = await redis.llen("BILLS");
-
       switch (req.method) {
         case "GET":
-          body = await get();
+          await get()
+            .then((data) => (body = data))
+            .catch(() => (status = 500));
+
           break;
 
-        case "POST":
-          if (data?.receipt === "undefined") {
-            status = 400;
-            data = {};
-            break;
-          }
-          status = 201;
-          if (data?.id === "undefined") data.id = len + 1;
-          body = data;
-          redis.lpush("BILLS", JSON.stringify(data));
+        case "DELETE":
+          await redis
+            .del("BILLS")
+            .then(() => (status = 204))
+            .catch(() => (status = 500));
+
           break;
 
         case "PATCH":
-          if (data?.id === "undefined") {
+          if (!data?.id) {
             status = 400;
-            body = {};
             break;
           }
-          const card = JSON.parse(await redis.lindex("BILLS", data.id));
-          // TODO
+
+          try {
+            const bill = JSON.parse(await redis.lindex("BILLS", data.id));
+            for (const key in data) {
+              if (!props_keys.includes(key)) return;
+              bill[key] = data[key];
+            }
+
+            await redis.lset("BILLS", data.id, JSON.stringify(bill));
+            status = 204;
+          } catch (error) {
+            status = 500;
+          }
+
+          break;
+
+        case "POST":
+          if (!data?.id) {
+            status = 400;
+            break;
+          }
+
+          await redis.lpush("BILLS", JSON.stringify(data));
+          status = 201;
+          body = data;
+
           break;
 
         default:
-          res.status(405).json({});
+          status = 405;
           break;
       }
 
-      res.status(status).send(body);
+      res.status(status).json(body);
     }
   );
 }

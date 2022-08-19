@@ -8,8 +8,9 @@ import {
   ThemeProvider,
 } from "@mui/material";
 import { StrictMode, useEffect, useState } from "react";
-import { Provider } from "react-redux";
+import { Provider, useDispatch, useSelector } from "react-redux";
 import store, { wrapper } from "../src/ts/store";
+import { set } from "../src/reducers/user";
 
 export const instance = axios.create({ baseURL: "/api", timeout: 5000 });
 export const theme = responsiveFontSizes(
@@ -17,16 +18,17 @@ export const theme = responsiveFontSizes(
 );
 
 function App({ Component, pageProps }: AppProps) {
-  const [name, setName] = useState("");
+  const { username } = useSelector((state: any) => state.user),
+    dispatch = useDispatch();
   useEffect(() => {
     let session_name = sessionStorage.getItem("name");
     if (!session_name) session_name = prompt("Kimsin?");
     if (typeof session_name !== "string" || session_name.trim().length === 0)
       return location.reload();
-    setName(session_name);
+    dispatch(set(session_name));
     sessionStorage.setItem("name", session_name);
     instance.defaults.headers.common["Authorization"] = session_name;
-  }, [name]);
+  }, [username]);
 
   return (
     <StrictMode>
@@ -36,7 +38,7 @@ function App({ Component, pageProps }: AppProps) {
       </Head>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <Component {...pageProps} name={name} />
+        <Component {...pageProps}/>
       </ThemeProvider>
     </StrictMode>
   );

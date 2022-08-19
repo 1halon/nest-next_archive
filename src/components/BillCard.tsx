@@ -10,6 +10,8 @@ import {
   Checkbox,
   CircularProgress,
   Collapse,
+  Divider,
+  Grid,
   IconButton,
   IconButtonProps,
   Input,
@@ -44,16 +46,17 @@ import {
   RestoreOutlined,
   CancelOutlined,
   CloseOutlined,
+  DeleteOutline,
 } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Dispatch, useEffect, useRef, useState } from "react";
-import { red, common, green } from "@mui/material/colors";
+import { red, common, green, orange } from "@mui/material/colors";
 import { styled } from "@mui/material/styles";
 import { DateTime } from "luxon";
 import { DesktopDatePicker } from "@mui/x-date-pickers";
 import { instance } from "../../pages/_app";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { remove } from "../reducers/billcard";
 
 const ExpandMore = styled((props: { expand: boolean } & IconButtonProps) => {
@@ -69,6 +72,7 @@ const ExpandMore = styled((props: { expand: boolean } & IconButtonProps) => {
 
 export const types = [
   "AİDAT",
+  "ALIŞVERİŞ",
   "ELEKTRİK",
   "GAZ",
   "İNTERNET",
@@ -79,17 +83,24 @@ export const types = [
 export type Types = typeof types[number];
 
 export const props = {
-  createdBy: null as string,
-  date: Date.now(),
-  description: null as string,
-  editable: false,
-  id: null as string,
-  get receipt() {
-    if (this.id) return `/cdn/receipts/${this.id}.pdf`;
+    createdBy: null as string,
+    date: Date.now(),
+    description: "",
+    editable: false,
+    id: null as string,
+    get receipt() {
+      if (this.id) return `/cdn/receipts/${this.id}.pdf`;
+    },
+    saved: false,
+    type: types[0] as Types,
   },
-  saved: false,
-  type: types[0] as Types,
-};
+  propsFromStates = (obj, states, keys, index) => {
+    const key = keys[index];
+    obj[key] = states[key]?.value;
+    if (index < keys.length)
+      return propsFromStates(obj, states, keys, index + 1);
+    return obj;
+  };
 export type Props = {
   [key in keyof typeof props]?: typeof props[key];
 };
@@ -103,6 +114,7 @@ type States = {
 
 const BillCard = (_props: Partial<Props>) => {
   const ref = useRef<HTMLDivElement>(),
+    { username } = useSelector((state: any) => state.user),
     dispatch = useDispatch(),
     [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null),
     [changed, setChanged] = useState(false),
@@ -123,11 +135,13 @@ const BillCard = (_props: Partial<Props>) => {
     states[key as keyof Props] = {
       set: function () {
         if (!changed && key !== "editable") setChanged(true);
-        return setValue.apply(this, arguments);
+        return setValue.apply(this, [arguments[0]]);
       } as never,
       value: value as never,
     };
   }
+
+  console.log(states);
 
   const dateTime = () =>
     DateTime.fromSeconds((states.date?.value as number) / 1000).toFormat(
@@ -141,13 +155,12 @@ const BillCard = (_props: Partial<Props>) => {
     if (loading) {
       const data = new FormData();
       // @ts-ignore
-      for (const key in states) {
-        const state = states[key as keyof Props];
-        data.append(key, state?.value as any);
-      }
+      for (const key in states)
+        data.append(key, states[key as keyof Props].value as any);
       delete upload?.url;
       upload && data.append("file", upload);
       data.delete("editable");
+      data.delete("saved");
 
       let request = instance[states.id?.value ? "patch" : "post"]("cards", data)
         .then((res) => {
@@ -161,16 +174,7 @@ const BillCard = (_props: Partial<Props>) => {
           () =>
             states.id?.value ||
             dispatch(
-              remove({
-                props: {
-                  ...(function _(obj, keys, index) {
-                    const key = keys[index];
-                    obj[key] = states[key]?.value;
-                    if (index < keys.length) return _(obj, keys, index + 1);
-                    return obj;
-                  })({}, Object.keys(states), 0),
-                },
-              })
+              remove(propsFromStates({}, states, Object.keys(states), 0))
             )
         );
 
@@ -183,7 +187,12 @@ const BillCard = (_props: Partial<Props>) => {
   }, [loading]);
 
   return (
-    <Card ref={ref} sx={{ maxWidth: 345 }}>
+    <Card
+      ref={ref}
+      sx={{
+        maxWidth: 345,
+      }}
+    >
       <CardHeader
         avatar={
           !states.editable?.value && (
@@ -259,6 +268,41 @@ const BillCard = (_props: Partial<Props>) => {
               Düzenle
             </Button>
           )}
+        </MenuItem>
+        <MenuItem>
+          <Button
+            sx={{ backgroundColor: "transparent !important" }}
+            startIcon={<DeleteOutline />}
+            onClick={() => {
+              instance.delete(`/cards/${states.id.value}`).then(() => {
+                dispatch(
+                  remove(propsFromStates({}, states, Object.keys(states), 0))
+                );
+              });
+            }}
+          >
+            Sil
+          </Button>
+        </MenuItem>
+        <Divider />
+        <MenuItem>
+          <Grid container sx={{ "align-items": "center" }}>
+            <Grid item>
+              <Tooltip title={username}>
+                <Avatar
+                  sx={{
+                    color: "text.primary",
+                    bgcolor: green["A700"],
+                  }}
+                >
+                  {username[0].toUpperCase()}
+                </Avatar>
+              </Tooltip>
+            </Grid>
+            <Grid item sx={{ margin: "0 1.25vh" }}>
+              Oluşturan
+            </Grid>
+          </Grid>
         </MenuItem>
       </Menu>
 
@@ -342,8 +386,10 @@ const BillCard = (_props: Partial<Props>) => {
                 disabled={loading}
                 sx={{ ml: "auto" }}
                 onClick={() => {
-                  setExpanded(false);
-                  states.editable.set(false);
+                  if (states.id.value) {
+                    setExpanded(false);
+                    states.editable.set(false);
+                  } else dispatch(remove(_props));
                 }}
               >
                 İptal

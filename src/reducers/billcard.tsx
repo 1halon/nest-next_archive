@@ -20,12 +20,12 @@ export const billcard = createSlice({
     filters: [],
   } as State,
   reducers: {
-    add: (state: State, action: Action<{ props: Props }>) => {
-      state.cards.push(action.payload.props);
+    add: (state: State, action: Action<Props>) => {
+      state.cards.push(action.payload);
       state.counts.total += 1;
     },
-    cards: (state: State, action: Action<{ cards: State["cards"] }>) => {
-      state.cards = action.payload.cards;
+    cards: (state: State, action: Action<State["cards"]>) => {
+      state.cards = action.payload;
       state.counts.total = state.cards.length;
     },
     counts: (
@@ -36,11 +36,11 @@ export const billcard = createSlice({
       if (typeof filtered === "number") state.counts.filtered = filtered;
       if (typeof total === "number") state.counts.total = total;
     },
-    remove: (state: State, action: Action<{ props: Props }>) => {
+    remove: (state: State, action: Action<Props>) => {
       state.cards.splice(
         state.cards.findIndex(
           (card) =>
-            JSON.stringify(card) === JSON.stringify(action.payload.props)
+            JSON.stringify(card) === JSON.stringify(action.payload)
         ),
         1
       );

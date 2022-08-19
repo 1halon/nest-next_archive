@@ -20,17 +20,13 @@ import { useState } from "react";
 import { add } from "../reducers/billcard";
 import { useDispatch, useSelector } from "react-redux";
 
-type Props = {
-  name: string;
-};
+const Navigation = () => {
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null),
+    [savedFilter, setSavedFilter] = useState(false);
 
-const Navigation = ({ name }: Props) => {
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [savedFilter, setSavedFilter] = useState(false);
-
-  const { counts } = useSelector((state: any) => state.billcard);
-
-  const dispatch = useDispatch();
+  const { counts } = useSelector((state: any) => state.billcard),
+    { username } = useSelector((state: any) => state.user),
+    dispatch = useDispatch();
 
   return (
     <AppBar position="static" sx={{ margin: "2.5vh 0 0" }}>
@@ -51,7 +47,7 @@ const Navigation = ({ name }: Props) => {
               textDecoration: "none",
             }}
           >
-            {name && `Hoş Geldin ${name}`}
+            {username && `Hoş Geldin ${username}`}
           </Typography>
 
           <Typography
@@ -73,7 +69,7 @@ const Navigation = ({ name }: Props) => {
           <Box sx={{ flexGrow: 0 }}>
             <IconButton
               onClick={({ currentTarget }) =>
-                dispatch(add({ props: { editable: true } }))
+                dispatch(add({ createdBy: username, editable: true }))
               }
               sx={{ p: 0, mr: "2vh" }}
             >
