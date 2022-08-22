@@ -10,11 +10,19 @@ import {
   IconButton,
   Menu,
   MenuItem,
+  Skeleton,
   Toolbar,
   Tooltip,
   Typography,
 } from "@mui/material";
-import { blue, deepOrange, green, grey, lightBlue } from "@mui/material/colors";
+import {
+  blue,
+  common,
+  deepOrange,
+  green,
+  grey,
+  lightBlue,
+} from "@mui/material/colors";
 import { AddOutlined, Check, PageviewOutlined } from "@mui/icons-material";
 import { useState } from "react";
 import { add } from "../reducers/billcard";
@@ -27,6 +35,8 @@ const Navigation = () => {
   const { counts } = useSelector((state: any) => state.billcard),
     { username } = useSelector((state: any) => state.user),
     dispatch = useDispatch();
+
+  if (!username) return <NavigationSkeleton />;
 
   return (
     <AppBar position="static" sx={{ margin: "2.5vh 0 0" }}>
@@ -47,7 +57,7 @@ const Navigation = () => {
               textDecoration: "none",
             }}
           >
-            {username && `Hoş Geldin ${username}`}
+            {`Hoş Geldin ${username}`}
           </Typography>
 
           <Typography
@@ -68,24 +78,26 @@ const Navigation = () => {
 
           <Box sx={{ flexGrow: 0 }}>
             <IconButton
-              onClick={({ currentTarget }) =>
+              //disabled
+              onClick={() =>
                 dispatch(add({ createdBy: username, editable: true }))
               }
               sx={{ p: 0, mr: "2vh" }}
             >
               <Tooltip title="Oluştur">
-                <Avatar sx={{ bgcolor: green["A700"] }}>
+                <Avatar sx={{ color: "text.primary", bgcolor: common.black }}>
                   <AddOutlined />
                 </Avatar>
               </Tooltip>
             </IconButton>
 
             <IconButton
+              disabled
               onClick={({ currentTarget }) => setAnchorEl(currentTarget)}
               sx={{ p: 0 }}
             >
               <Tooltip title="Filtreler">
-                <Avatar sx={{ bgcolor: green["A700"] }}>
+                <Avatar sx={{ color: "text.primary", bgcolor: common.black }}>
                   <PageviewOutlined />
                 </Avatar>
               </Tooltip>
@@ -122,4 +134,15 @@ const Navigation = () => {
   );
 };
 
+export const NavigationSkeleton = () => {
+  return (
+    <Skeleton
+      sx={{ margin: "2.5vh 0 0" }}
+      animation="wave"
+      variant="rectangular"
+      width="100%"
+      height="64px"
+    />
+  );
+};
 export default Navigation;

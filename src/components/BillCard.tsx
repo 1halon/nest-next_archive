@@ -1,5 +1,4 @@
 import {
-  Alert,
   Avatar,
   Button,
   Card,
@@ -8,67 +7,39 @@ import {
   CardHeader,
   CardMedia,
   Checkbox,
-  CircularProgress,
   Collapse,
   Divider,
   Grid,
   IconButton,
-  IconButtonProps,
-  Input,
   Menu,
   MenuItem,
-  Select,
-  Snackbar,
+  Skeleton,
   TextField,
   Tooltip,
   Typography,
 } from "@mui/material";
 import {
-  Attachment,
-  Bookmark,
   BookmarkAdded,
   BookmarkBorder,
   BookmarkRemove,
-  Favorite,
-  FileDownload,
+  ExpandMore,
   FileDownloadOutlined,
-  FileDownloadRounded,
-  FileDownloadDone,
-  FileDownloadOff,
-  Receipt,
   MoreVert,
   OpenInNewOutlined,
-  Share,
   EditOutlined,
-  EditOffOutlined,
-  SaveOutlined,
   AttachFileOutlined,
   RestoreOutlined,
-  CancelOutlined,
-  CloseOutlined,
   DeleteOutline,
+  ReceiptLongOutlined,
 } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { Dispatch, useEffect, useRef, useState } from "react";
-import { red, common, green, orange } from "@mui/material/colors";
-import { styled } from "@mui/material/styles";
+import { Dispatch, useEffect, useState } from "react";
+import { common } from "@mui/material/colors";
 import { DateTime } from "luxon";
 import { DesktopDatePicker } from "@mui/x-date-pickers";
-import { instance } from "../../pages/_app";
 import { useDispatch, useSelector } from "react-redux";
 import { remove } from "../reducers/billcard";
-
-const ExpandMore = styled((props: { expand: boolean } & IconButtonProps) => {
-  const { expand, ...other } = props;
-  return <IconButton {...other} />;
-})(({ theme, expand }) => ({
-  transform: !expand ? "rotate(0deg)" : "rotate(180deg)",
-  marginLeft: "auto",
-  transition: theme.transitions.create("transform", {
-    duration: theme.transitions.duration.shortest,
-  }),
-}));
+import { request } from "../../pages/_app";
 
 export const types = [
   "AİDAT",
@@ -113,8 +84,7 @@ type States = {
 };
 
 const BillCard = (_props: Partial<Props>) => {
-  const ref = useRef<HTMLDivElement>(),
-    { username } = useSelector((state: any) => state.user),
+  const { username } = useSelector((state: any) => state.user),
     dispatch = useDispatch(),
     [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null),
     [changed, setChanged] = useState(false),
@@ -123,12 +93,15 @@ const BillCard = (_props: Partial<Props>) => {
     [savedHovered, setSavedHovered] = useState(false),
     [upload, setUpload] = useState<any>();
 
-  const states = {} as States;
   props.id = _props?.id;
+  const states = {} as States;
+
   for (const key in props) {
     const prop = _props[key] ?? props[key],
+      // eslint-disable-next-line react-hooks/rules-of-hooks
       [value, setValue] = useState(prop);
 
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     useEffect(() => setValue(prop), [prop]);
 
     // @ts-ignore
@@ -140,8 +113,6 @@ const BillCard = (_props: Partial<Props>) => {
       value: value as never,
     };
   }
-
-  console.log(states);
 
   const dateTime = () =>
     DateTime.fromSeconds((states.date?.value as number) / 1000).toFormat(
@@ -157,15 +128,21 @@ const BillCard = (_props: Partial<Props>) => {
       // @ts-ignore
       for (const key in states)
         data.append(key, states[key as keyof Props].value as any);
-      delete upload?.url;
-      upload && data.append("file", upload);
+
       data.delete("editable");
       data.delete("saved");
 
-      let request = instance[states.id?.value ? "patch" : "post"]("cards", data)
+      delete upload?.url;
+      upload && data.append("file", upload);
+
+      request(
+        `/cards${(states.id.value && `/${states.id.value}`) || ""}`,
+        states.id?.value ? "PATCH" : "POST",
+        data
+      )
         .then((res) => {
-          for (const key in res.data) {
-            const value = res.data[key];
+          for (const key in res) {
+            const value = res[key];
             value !== states[key].value && states[key].set(value);
           }
           setUpload(null);
@@ -176,19 +153,17 @@ const BillCard = (_props: Partial<Props>) => {
             dispatch(
               remove(propsFromStates({}, states, Object.keys(states), 0))
             )
-        );
-
-      request.finally(() => {
-        setChanged(false);
-        setLoading(false);
-        states.editable?.set(false);
-      });
+        )
+        .finally(() => {
+          setChanged(false);
+          setLoading(false);
+          states.editable?.set(false);
+        });
     }
-  }, [loading]);
+  }, [loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Card
-      ref={ref}
       sx={{
         maxWidth: 345,
       }}
@@ -196,8 +171,8 @@ const BillCard = (_props: Partial<Props>) => {
       <CardHeader
         avatar={
           !states.editable?.value && (
-            <Avatar sx={{ color: "text.primary", bgcolor: green["A700"] }}>
-              <Receipt />
+            <Avatar sx={{ color: "text.primary", bgcolor: common.black }}>
+              <ReceiptLongOutlined />
             </Avatar>
           )
         }
@@ -274,11 +249,13 @@ const BillCard = (_props: Partial<Props>) => {
             sx={{ backgroundColor: "transparent !important" }}
             startIcon={<DeleteOutline />}
             onClick={() => {
-              instance.delete(`/cards/${states.id.value}`).then(() => {
-                dispatch(
-                  remove(propsFromStates({}, states, Object.keys(states), 0))
+              request(`/cards/${states.id.value}`, "DELETE")
+                .catch(() => {})
+                .finally(() =>
+                  dispatch(
+                    remove(propsFromStates({}, states, Object.keys(states), 0))
+                  )
                 );
-              });
             }}
           >
             Sil
@@ -286,13 +263,13 @@ const BillCard = (_props: Partial<Props>) => {
         </MenuItem>
         <Divider />
         <MenuItem>
-          <Grid container sx={{ "align-items": "center" }}>
+          <Grid container sx={{ alignItems: "center" }}>
             <Grid item>
               <Tooltip title={username}>
                 <Avatar
                   sx={{
                     color: "text.primary",
-                    bgcolor: green["A700"],
+                    bgcolor: common.black,
                   }}
                 >
                   {username[0].toUpperCase()}
@@ -429,14 +406,21 @@ const BillCard = (_props: Partial<Props>) => {
                 <OpenInNewOutlined />
               </Tooltip>
             </IconButton>
-            <ExpandMore
-              expand={expanded}
+            <IconButton
+              sx={{
+                transform: !expanded ? "rotate(0deg)" : "rotate(180deg)",
+                marginLeft: "auto",
+                transition: (theme) =>
+                  theme.transitions.create("transform", {
+                    duration: theme.transitions.duration.shortest,
+                  }),
+              }}
               onClick={() => setExpanded(!expanded)}
             >
               <Tooltip title="Dekontu Göster">
-                <ExpandMoreIcon />
+                <ExpandMore />
               </Tooltip>
-            </ExpandMore>
+            </IconButton>
           </>
         )}
       </CardActions>
@@ -460,6 +444,12 @@ const BillCard = (_props: Partial<Props>) => {
         </Collapse>
       )}
     </Card>
+  );
+};
+
+export const BillCardSkeleton = () => {
+  return (
+    <Skeleton animation="wave" variant="rounded" width="32vh" height="51vh" />
   );
 };
 
