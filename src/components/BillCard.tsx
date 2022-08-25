@@ -287,6 +287,7 @@ const BillCard = (_props: Partial<Props>) => {
         {(states.editable?.value && (
           <TextField
             disabled={loading}
+            multiline
             label="Fatura Açıklaması"
             variant="standard"
             value={states.description?.value}
@@ -294,7 +295,11 @@ const BillCard = (_props: Partial<Props>) => {
           />
         )) ||
           (states.description?.value && (
-            <Typography variant="body2" color="text.secondary">
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ whiteSpace: "pre-line" }}
+            >
               {states.description?.value}
             </Typography>
           ))}

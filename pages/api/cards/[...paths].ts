@@ -19,8 +19,18 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const [id, saved] = req.query?.path as string[];
+  const [id, saved] = req.query?.paths as string[];
   if (!id) return res.status(400).json(undefined);
+
+  if (saved === "saved" && req.method.toUpperCase() === "POST") {
+    const username = req.query?.username;
+    if (!username) return res.status(400).json(undefined);
+    let status = 204;
+    await redis
+      .lpush(`${username}_SAVED_${redisKey}`, id)
+      .catch(() => (status = 500));
+    return res.status(status).json(undefined);
+  }
 
   if (
     (["close", "end", "wait"] as typeof redis.status[]).includes(redis.status)

@@ -9,7 +9,6 @@ const store = configureStore({
   reducer: (state: any, action: AnyAction) => {
     switch (action.type) {
       case HYDRATE:
-        // Attention! This will overwrite client state! Real apps should use proper reconciliation.
         return { ...state, ...action.payload };
       default:
         return root_reducers(state, action);

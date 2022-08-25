@@ -1,6 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { Action } from ".";
-import BillCard from "../components/BillCard";
 import type { Props } from "../components/BillCard";
 
 export interface State {
@@ -21,7 +20,7 @@ export const billcard = createSlice({
   } as State,
   reducers: {
     add: (state: State, action: Action<Props>) => {
-      state.cards.push(action.payload);
+      state.cards = [action.payload, ...state.cards];
       state.counts.total += 1;
     },
     cards: (state: State, action: Action<State["cards"]>) => {
@@ -39,8 +38,7 @@ export const billcard = createSlice({
     remove: (state: State, action: Action<Props>) => {
       state.cards.splice(
         state.cards.findIndex(
-          (card) =>
-            JSON.stringify(card) === JSON.stringify(action.payload)
+          (card) => JSON.stringify(card) === JSON.stringify(action.payload)
         ),
         1
       );
