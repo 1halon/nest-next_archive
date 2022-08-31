@@ -13,37 +13,41 @@ import {
   writeReceipt,
 } from ".";
 
-redis_connect();
+//redis_connect();
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
   const [id, saved] = req.query?.paths as string[];
-  if (!id) return res.status(400).json(undefined);
+  if (!id) return res.status(400).json({ message: "ID yok." });
 
   if (saved === "saved" && req.method.toUpperCase() === "POST") {
     const username = req.query?.username;
-    if (!username) return res.status(400).json(undefined);
-    let status = 204;
-    await redis
-      .lpush(`${username}_SAVED_${redisKey}`, id)
-      .catch(() => (status = 500));
-    return res.status(status).json(undefined);
+    if (!username)
+      return res.status(400).json({ message: "Kullanıcı adı yok." });
+    let status = 204,
+      body = undefined;
+    await redis.lpush(`${username}_SAVED_${redisKey}`, id).catch((err) => {
+      status = 500;
+      body = { message: err.message };
+    });
+    return res.status(status).json(body);
   }
 
   if (
     (["close", "end", "wait"] as typeof redis.status[]).includes(redis.status)
   )
-    return res.status(500).json(undefined);
+    return res.status(500).json({ message: redis.status });
 
   new IncomingForm({ maxFields: 7, maxFiles: 1 }).parse(
     req,
     async (err, fields, files) => {
-      if (err) return res.status(400).json(undefined);
+      if (err) return res.status(400).json({ message: err.message });
 
       const field = await redis.hget(redisKey, id);
-      if (!field) return res.status(404).json(undefined);
+      if (!field)
+        return res.status(404).json({ message: "Fatura bulunamadı." });
 
       const data = normalize(fields),
         file = files.file as File;
@@ -52,11 +56,11 @@ export default async function handler(
         try {
           data.receipt = writeReceipt(id, file.filepath);
         } catch (error) {
-          return res.status(400).json(undefined);
+          return res.status(400).json({ message: error.message });
         }
 
       let status = 200,
-        body;
+        body = {};
 
       switch (req.method.toUpperCase()) {
         case "DELETE":
@@ -66,8 +70,10 @@ export default async function handler(
             unlinkSync(join(receipts, `${id}.pdf`));
 
             status = 204;
+            body = undefined;
           } catch (error) {
             status = 500;
+            body = { message: error.message };
           }
           break;
 
@@ -84,7 +90,10 @@ export default async function handler(
           await redis
             .hset(redisKey, id, JSON.stringify(bill))
             .then(() => (body = bill))
-            .catch(() => (status = 500));
+            .catch((err) => {
+              status = 500;
+              body = { message: err.message };
+            });
 
           break;
 

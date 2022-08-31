@@ -1,4 +1,4 @@
-import { Grid } from "@mui/material";
+import { Alert, AlertTitle, Grid, Slide, Snackbar } from "@mui/material";
 import type { NextPage } from "next";
 import Navigation from "../src/components/Navigation";
 import { LocalizationProvider } from "@mui/x-date-pickers";
@@ -9,33 +9,31 @@ import { get } from "./api/cards";
 import { cards } from "../src/reducers/billcard";
 import { Suspense, useEffect } from "react";
 import dynamic from "next/dynamic";
-import { set } from "../src/reducers/user";
+import { alert as _alert, username } from "../src/reducers/user";
 
 const BillCard = dynamic(() => import("../src/components/BillCard"), {
   ssr: false,
   suspense: true,
 });
 
-const Home: NextPage = ({ data }: any) => {
+const Home: NextPage = () => {
   const { cards: _cards } = useSelector((state: any) => state.billcard),
-    { username } = useSelector((state: any) => state.user),
+    { alert } = useSelector((state: any) => state.user),
     dispatch = useDispatch();
 
-  useEffect(() => {
-    dispatch(cards(data));
-  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     let session_name = sessionStorage.getItem("name");
     if (!session_name) session_name = prompt("Kimsin?");
     if (typeof session_name !== "string" || session_name.trim().length === 0)
       return location.reload();
-    dispatch(set(session_name));
+    dispatch(username(session_name));
     sessionStorage.setItem("name", session_name);
-  }, [username]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <LocalizationProvider dateAdapter={AdapterLuxon}>
+    <LocalizationProvider dateAdapter={AdapterLuxon} adapterLocale="tr">
       <Navigation />
 
       <Grid
@@ -54,12 +52,32 @@ const Home: NextPage = ({ data }: any) => {
           </Grid>
         ))}
       </Grid>
+      <Snackbar
+        autoHideDuration={alert?.timeout ?? 5000}
+        open={alert?.open}
+        onClose={() => dispatch(_alert({ ...alert, open: false }))}
+      >
+        <Alert
+          severity={alert?.severity ?? "error"}
+          variant="filled"
+          sx={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            margin: "1.5vh",
+            width: "max-content",
+          }}
+        >
+          {alert?.title && (
+            <AlertTitle>
+              <strong>{alert.title}</strong>
+            </AlertTitle>
+          )}
+          {alert?.content}
+        </Alert>
+      </Snackbar>
     </LocalizationProvider>
   );
 };
-
-export async function getServerSideProps() {
-  return { props: { data: await get() } };
-}
 
 export default Home;

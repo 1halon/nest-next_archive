@@ -32,7 +32,7 @@ const Navigation = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null),
     [savedFilter, setSavedFilter] = useState(false);
 
-  const { counts } = useSelector((state: any) => state.billcard),
+  const { cards, counts } = useSelector((state: any) => state.billcard),
     { username } = useSelector((state: any) => state.user),
     dispatch = useDispatch();
 
@@ -78,7 +78,7 @@ const Navigation = () => {
 
           <Box sx={{ flexGrow: 0 }}>
             <IconButton
-              //disabled
+              disabled={Boolean(cards.find((card) => !card.id))}
               onClick={() =>
                 dispatch(add({ createdBy: username, editable: true }))
               }

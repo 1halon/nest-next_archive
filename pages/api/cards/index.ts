@@ -7,16 +7,22 @@ import Redis from "ioredis";
 import { props } from "../../../src/components/BillCard";
 
 export const receipts = join(process.cwd(), "public", "cdn", "receipts");
-export const redis = new Redis("192.168.1.16:6379", { lazyConnect: true });
+export const redis = new Redis("192.168.1.16:6379", {
+  //enableOfflineQueue: false,
+  //maxRetriesPerRequest: 0,
+  //lazyConnect: true,
+  //offlineQueue: false,
+});
 export const redisKey = "BILLS";
 export const redis_connect = () => {
     (["connecting", "reconnecting"] as typeof redis.status[]).includes(
       redis.status
-    ) || redis.connect().catch(() => setTimeout(redis_connect, 5000));
+    ) || redis.connect().catch(() => null);
   },
   props_keys = Object.keys(props);
 
-redis_connect();
+redis.on("error", () => null);
+//redis_connect();
 
 export async function get() {
   return (await redis.hvals(redisKey)).map((value) => JSON.parse(value));
@@ -49,12 +55,12 @@ export default async function handler(
   if (
     (["close", "end", "wait"] as typeof redis.status[]).includes(redis.status)
   )
-    return res.status(500).json(undefined);
+    return res.status(500).json({ message: redis.status });
 
   new IncomingForm({ maxFields: 7, maxFiles: 1 }).parse(
     req,
     async (err, fields, files) => {
-      if (err) res.status(400).json(undefined);
+      if (err) res.status(400).json({ message: err });
 
       const data = normalize(fields),
         file = files.file as File;
@@ -64,25 +70,34 @@ export default async function handler(
           data.id = file.newFilename;
           data.receipt = writeReceipt(data.id, file.filepath);
         } catch (error) {
-          return res.status(400).json(undefined);
+          return res.status(400).json({ message: error.message });
         }
 
       let status = 200,
-        body;
+        body = {};
 
       switch (req.method) {
         case "DELETE":
           await redis
             .del(redisKey)
-            .then(() => (status = 204))
-            .catch(() => (status = 500));
+            .then(() => {
+              status = 204;
+              body = undefined;
+            })
+            .catch((err) => {
+              status = 500;
+              body = { message: err.message };
+            });
 
           break;
 
         case "GET":
           await get()
             .then((data) => (body = data))
-            .catch(() => (status = 500));
+            .catch((err) => {
+              status = 500;
+              body = { message: err.message };
+            });
 
           break;
 
@@ -98,7 +113,10 @@ export default async function handler(
               status = 201;
               body = data;
             })
-            .catch(() => (status = 500));
+            .catch((err) => {
+              status = 500;
+              body = { message: err.message };
+            });
 
           break;
 
@@ -107,7 +125,7 @@ export default async function handler(
           break;
       }
 
-      res.status(status).json(body);
+      return res.status(status).json(body);
     }
   );
 }

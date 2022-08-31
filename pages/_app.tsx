@@ -16,7 +16,16 @@ export const request = (url: string, method: string, data?: any) =>
       Accept: "application/json",
     },
     method,
-  }).then((res) => res.json());
+    signal: (() => {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 5000);
+      return controller.signal;
+    })(),
+  }).then(async (res) => {
+    const body = await res.json().catch(() => {});
+    if (res.status.toString()[0] === "2") return body;
+    throw body?.message ?? res.statusText;
+  });
 
 export const theme = responsiveFontSizes(
   createTheme({ palette: { mode: "dark" } })

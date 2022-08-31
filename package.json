@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@date-io/luxon": "^2.15.0",
     "@emotion/react": "^11.10.0",
     "@emotion/styled": "^11.10.0",
     "@mui/icons-material": "^5.8.4",

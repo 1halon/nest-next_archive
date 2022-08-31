@@ -38,8 +38,9 @@ import { common } from "@mui/material/colors";
 import { DateTime } from "luxon";
 import { DesktopDatePicker } from "@mui/x-date-pickers";
 import { useDispatch, useSelector } from "react-redux";
-import { remove } from "../reducers/billcard";
+import { remove, update } from "../reducers/billcard";
 import { request } from "../../pages/_app";
+import { alert } from "../reducers/user";
 
 export const types = [
   "AİDAT",
@@ -51,6 +52,7 @@ export const types = [
   "SU",
   "TELEFON",
 ] as const;
+
 export type Types = typeof types[number];
 
 export const props = {
@@ -65,19 +67,26 @@ export const props = {
     saved: false,
     type: types[0] as Types,
   },
-  propsFromStates = (obj, states, keys, index) => {
+  propsFromStates = (
+    obj: object,
+    states: States,
+    keys: string[],
+    index: number
+  ) => {
     const key = keys[index];
     obj[key] = states[key]?.value;
     if (index < keys.length)
       return propsFromStates(obj, states, keys, index + 1);
     return obj;
   };
+
 export type Props = {
   [key in keyof typeof props]?: typeof props[key];
 };
 
 type States = {
-  [key in keyof Props]: {
+  [key in keyof Props]-?: {
+    previous: Props[key];
     set: Dispatch<Props[key]>;
     value: Props[key];
   };
@@ -86,7 +95,7 @@ type States = {
 const BillCard = (_props: Partial<Props>) => {
   const { username } = useSelector((state: any) => state.user),
     dispatch = useDispatch(),
-    [anchorEl, setAnchorEl] = useState<null | HTMLButtonElement>(null),
+    [anchorEl, setAnchorEl] = useState(null),
     [changed, setChanged] = useState(false),
     [expanded, setExpanded] = useState(false),
     [loading, setLoading] = useState(false),
@@ -106,28 +115,22 @@ const BillCard = (_props: Partial<Props>) => {
 
     // @ts-ignore
     states[key as keyof Props] = {
+      previous: value,
       set: function () {
         if (!changed && key !== "editable") setChanged(true);
+        //dispatch(update({ [key]: arguments[0] }));
         return setValue.apply(this, [arguments[0]]);
       } as never,
       value: value as never,
     };
   }
 
-  const dateTime = () =>
-    DateTime.fromSeconds((states.date?.value as number) / 1000).toFormat(
-      "LLLL, yyyy",
-      {
-        locale: "tr",
-      }
-    );
-
   useEffect(() => {
     if (loading) {
       const data = new FormData();
       // @ts-ignore
       for (const key in states)
-        data.append(key, states[key as keyof Props].value as any);
+        data.append(key, states[key as keyof Props]?.value as any);
 
       data.delete("editable");
       data.delete("saved");
@@ -135,25 +138,40 @@ const BillCard = (_props: Partial<Props>) => {
       delete upload?.url;
       upload && data.append("file", upload);
 
+      const method = states.id?.value ? "PATCH" : "POST";
+
       request(
-        `/cards${(states.id.value && `/${states.id.value}`) || ""}`,
-        states.id?.value ? "PATCH" : "POST",
+        `/cards${(states.id?.value && `/${states.id?.value}`) || ""}`,
+        method,
         data
       )
-        .then((res) => {
-          for (const key in res) {
-            const value = res[key];
+        .then((body) => {
+          for (const key in body) {
+            const value = body[key];
             value !== states[key].value && states[key].set(value);
           }
           setUpload(null);
+          dispatch(
+            alert({
+              content: successText(
+                body?.id,
+                method === "PATCH" ? "düzenlendi" : "oluşturuldu"
+              ),
+              severity: "success",
+              title: "Fatura Oluşturma",
+            })
+          );
         })
-        .catch(
-          () =>
-            states.id?.value ||
-            dispatch(
-              remove(propsFromStates({}, states, Object.keys(states), 0))
-            )
-        )
+        .catch((err) => {
+          states.id?.value || dispatch(remove(states.id?.value));
+          dispatch(
+            alert({
+              content: errorText(err),
+              severity: "error",
+              title: "Fatura Oluşturma",
+            })
+          );
+        })
         .finally(() => {
           setChanged(false);
           setLoading(false);
@@ -161,6 +179,15 @@ const BillCard = (_props: Partial<Props>) => {
         });
     }
   }, [loading]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const dateTime = (locale?) =>
+      DateTime.fromSeconds((states.date?.value as number) / 1000).toFormat(
+        "LLLL, yyyy",
+        locale
+      ),
+    errorText = (err) => (typeof err === "string" ? err : err.message),
+    successText = (id: string, action: string) =>
+      `${id} ID'li faturanız başarıyla ${action}.`;
 
   return (
     <Card
@@ -212,14 +239,18 @@ const BillCard = (_props: Partial<Props>) => {
           (states.editable?.value && (
             <DesktopDatePicker
               disabled={loading}
+              disableFuture={true}
               label="Fatura Tarihi"
               inputFormat="MM/yyyy"
+              views={["month", "year"]}
               value={dateTime()}
-              onChange={(value: any) => states.date?.set(value.toSeconds())}
+              onChange={(value: any) =>
+                states.date?.set(value.toSeconds() * 1000)
+              }
               renderInput={(params) => <TextField {...params} />}
             />
           )) ||
-          dateTime()
+          dateTime({ locale: "tr" })
         }
       />
 
@@ -249,11 +280,24 @@ const BillCard = (_props: Partial<Props>) => {
             sx={{ backgroundColor: "transparent !important" }}
             startIcon={<DeleteOutline />}
             onClick={() => {
-              request(`/cards/${states.id.value}`, "DELETE")
-                .catch(() => {})
-                .finally(() =>
+              request(`/cards/${states.id?.value}`, "DELETE")
+                .then(() => {
+                  dispatch(remove(states.id?.value));
                   dispatch(
-                    remove(propsFromStates({}, states, Object.keys(states), 0))
+                    alert({
+                      content: successText(states.id?.value, "silindi"),
+                      severity: "success",
+                      title: "Fatura Silme",
+                    })
+                  );
+                })
+                .catch((err) =>
+                  dispatch(
+                    alert({
+                      content: errorText(err),
+                      severity: "error",
+                      title: "Fatura Silme",
+                    })
                   )
                 );
             }}
@@ -371,7 +415,7 @@ const BillCard = (_props: Partial<Props>) => {
                   if (states.id.value) {
                     setExpanded(false);
                     states.editable.set(false);
-                  } else dispatch(remove(_props));
+                  } else dispatch(remove(states.id?.value));
                 }}
               >
                 İptal
