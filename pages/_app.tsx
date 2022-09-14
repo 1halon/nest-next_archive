@@ -35,6 +35,7 @@ function App({ Component, pageProps }: AppProps) {
   return (
     <StrictMode>
       <Head>
+        <meta name="description" content="Fatura Takip"></meta>
         <meta name="viewport" content="initial-scale=1, width=device-width" />
         <link rel="manifest" href="/manifest.json" />
         <title>Fatura Takip</title>

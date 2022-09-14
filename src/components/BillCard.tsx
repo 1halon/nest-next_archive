@@ -86,9 +86,10 @@ export type Props = {
 
 type States = {
   [key in keyof Props]-?: {
+    _changedAt: number;
     previous: Props[key];
     set: Dispatch<Props[key]>;
-    value: Props[key];
+    value?: Props[key];
   };
 };
 
@@ -115,10 +116,14 @@ const BillCard = (_props: Partial<Props>) => {
 
     // @ts-ignore
     states[key as keyof Props] = {
+      _changedAt: Date.now(),
       previous: value,
       set: function () {
         if (!changed && key !== "editable") setChanged(true);
-        //dispatch(update({ [key]: arguments[0] }));
+        if (this._changedAt > 2000) {
+          this.previous = value;
+          this._changedAt = Date.now();
+        }
         return setValue.apply(this, [arguments[0]]);
       } as never,
       value: value as never,
@@ -138,7 +143,8 @@ const BillCard = (_props: Partial<Props>) => {
       delete upload?.url;
       upload && data.append("file", upload);
 
-      const method = states.id?.value ? "PATCH" : "POST";
+      const method = states.id?.value ? "PATCH" : "POST",
+        title = `Fatura ${method === "PATCH" ? "Düzenleme" : "Oluşturma"}`;
 
       request(
         `/cards${(states.id?.value && `/${states.id?.value}`) || ""}`,
@@ -146,11 +152,10 @@ const BillCard = (_props: Partial<Props>) => {
         data
       )
         .then((body) => {
-          for (const key in body) {
-            const value = body[key];
-            value !== states[key].value && states[key].set(value);
-          }
+          for (const key in body) states[key].set(body[key]);
+
           setUpload(null);
+
           dispatch(
             alert({
               content: successText(
@@ -158,23 +163,25 @@ const BillCard = (_props: Partial<Props>) => {
                 method === "PATCH" ? "düzenlendi" : "oluşturuldu"
               ),
               severity: "success",
-              title: "Fatura Oluşturma",
+              title,
             })
           );
         })
         .catch((err) => {
           states.id?.value || dispatch(remove(states.id?.value));
+
           dispatch(
             alert({
               content: errorText(err),
               severity: "error",
-              title: "Fatura Oluşturma",
+              title,
             })
           );
         })
         .finally(() => {
           setChanged(false);
           setLoading(false);
+
           states.editable?.set(false);
         });
     }
@@ -280,14 +287,17 @@ const BillCard = (_props: Partial<Props>) => {
             sx={{ backgroundColor: "transparent !important" }}
             startIcon={<DeleteOutline />}
             onClick={() => {
-              request(`/cards/${states.id?.value}`, "DELETE")
+              const id = states.id?.value,
+                title = "Fatura Silme";
+
+              request(`/cards/${id}`, "DELETE")
                 .then(() => {
-                  dispatch(remove(states.id?.value));
+                  dispatch(remove(id));
                   dispatch(
                     alert({
-                      content: successText(states.id?.value, "silindi"),
+                      content: successText(id, "silindi"),
                       severity: "success",
-                      title: "Fatura Silme",
+                      title,
                     })
                   );
                 })
@@ -296,7 +306,7 @@ const BillCard = (_props: Partial<Props>) => {
                     alert({
                       content: errorText(err),
                       severity: "error",
-                      title: "Fatura Silme",
+                      title,
                     })
                   )
                 );
@@ -412,7 +422,7 @@ const BillCard = (_props: Partial<Props>) => {
                 disabled={loading}
                 sx={{ ml: "auto" }}
                 onClick={() => {
-                  if (states.id.value) {
+                  if (states.id?.value) {
                     setExpanded(false);
                     states.editable.set(false);
                   } else dispatch(remove(states.id?.value));
@@ -439,7 +449,7 @@ const BillCard = (_props: Partial<Props>) => {
             <IconButton
               onClick={() => {
                 const link = document.createElement("a");
-                link.href = states.receipt?.value as string;
+                link.href = states.receipt?.value;
                 link.download = "Fatura.pdf";
                 link.target = "_blank";
                 link.click();
@@ -450,7 +460,7 @@ const BillCard = (_props: Partial<Props>) => {
                 <FileDownloadOutlined />
               </Tooltip>
             </IconButton>
-            <IconButton target="_blank" href={states.receipt?.value as string}>
+            <IconButton target="_blank" href={states.receipt?.value}>
               <Tooltip title="Dekontu Aç">
                 <OpenInNewOutlined />
               </Tooltip>

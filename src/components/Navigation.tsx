@@ -78,6 +78,7 @@ const Navigation = () => {
 
           <Box sx={{ flexGrow: 0 }}>
             <IconButton
+              aria-label="create"
               disabled={Boolean(cards.find((card) => !card.id))}
               onClick={() =>
                 dispatch(add({ createdBy: username, editable: true }))
@@ -92,6 +93,7 @@ const Navigation = () => {
             </IconButton>
 
             <IconButton
+              aria-label="filters"
               disabled
               onClick={({ currentTarget }) => setAnchorEl(currentTarget)}
               sx={{ p: 0 }}
