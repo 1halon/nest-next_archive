@@ -10,6 +10,7 @@ import { cards } from "../src/reducers/billcard";
 import { Suspense, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { alert as _alert, username } from "../src/reducers/user";
+import type { SelectorState } from "../src/reducers";
 
 const BillCard = dynamic(() => import("../src/components/BillCard"), {
   ssr: false,
@@ -17,11 +18,9 @@ const BillCard = dynamic(() => import("../src/components/BillCard"), {
 });
 
 const Home: NextPage = () => {
-  const { cards: _cards } = useSelector((state: any) => state.billcard),
+  const { cards: _cards } = useSelector<SelectorState, SelectorState["billcard"]>((state) => state.billcard),
     { alert } = useSelector((state: any) => state.user),
     dispatch = useDispatch();
-
-  useEffect(() => {}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     let session_name = sessionStorage.getItem("name");

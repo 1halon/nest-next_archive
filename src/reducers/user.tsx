@@ -30,5 +30,4 @@ export const user = createSlice({
 });
 
 export const { alert, username } = user.actions;
-
 export default user.reducer;

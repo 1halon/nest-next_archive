@@ -56,29 +56,18 @@ export const types = [
 export type Types = typeof types[number];
 
 export const props = {
-    createdBy: null as string,
-    date: Date.now(),
-    description: "",
-    editable: false,
-    id: null as string,
-    get receipt() {
-      if (this.id) return `/cdn/receipts/${this.id}.pdf`;
-    },
-    saved: false,
-    type: types[0] as Types,
+  createdBy: null as string,
+  date: Date.now(),
+  description: "",
+  editable: false,
+  id: null as string,
+  get receipt() {
+    if (this.id) return `/cdn/receipts/${this.id}.pdf`;
   },
-  propsFromStates = (
-    obj: object,
-    states: States,
-    keys: string[],
-    index: number
-  ) => {
-    const key = keys[index];
-    obj[key] = states[key]?.value;
-    if (index < keys.length)
-      return propsFromStates(obj, states, keys, index + 1);
-    return obj;
-  };
+  saved: false,
+  total: 0,
+  type: types[0] as Types,
+};
 
 export type Props = {
   [key in keyof typeof props]?: typeof props[key];
@@ -92,6 +81,12 @@ type States = {
     value?: Props[key];
   };
 };
+
+const total_formatter = Intl.NumberFormat("tr-TR", {
+  currency: "TRY",
+  signDisplay: "never",
+  style: "currency",
+});
 
 const BillCard = (_props: Partial<Props>) => {
   const { username } = useSelector((state: any) => state.user),
@@ -155,6 +150,7 @@ const BillCard = (_props: Partial<Props>) => {
           for (const key in body) states[key].set(body[key]);
 
           setUpload(null);
+          states.editable?.set(false);
 
           dispatch(
             alert({
@@ -168,8 +164,6 @@ const BillCard = (_props: Partial<Props>) => {
           );
         })
         .catch((err) => {
-          states.id?.value || dispatch(remove(states.id?.value));
-
           dispatch(
             alert({
               content: errorText(err),
@@ -179,10 +173,8 @@ const BillCard = (_props: Partial<Props>) => {
           );
         })
         .finally(() => {
-          setChanged(false);
           setLoading(false);
-
-          states.editable?.set(false);
+          setChanged(false);
         });
     }
   }, [loading]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -203,6 +195,19 @@ const BillCard = (_props: Partial<Props>) => {
       }}
     >
       <CardHeader
+        sx={{
+          "& .MuiFormControl-root.MuiTextField-root": {
+            width: "100%",
+          },
+          "& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button":
+            {
+              WebkitAppearance: "none",
+              m: 0,
+            },
+          '& input[type="number"]': {
+            MozAppearance: "textfield",
+          },
+        }}
         avatar={
           !states.editable?.value && (
             <Avatar sx={{ color: "text.primary", bgcolor: common.black }}>
@@ -225,7 +230,7 @@ const BillCard = (_props: Partial<Props>) => {
               disabled={loading}
               select
               label="Fatura Türü"
-              value={states.type?.value ?? types[0]}
+              value={states.type?.value}
               defaultValue={types[0]}
               fullWidth
               sx={{ mb: "1rem" }}
@@ -244,20 +249,43 @@ const BillCard = (_props: Partial<Props>) => {
         }
         subheader={
           (states.editable?.value && (
-            <DesktopDatePicker
-              disabled={loading}
-              disableFuture={true}
-              label="Fatura Tarihi"
-              inputFormat="MM/yyyy"
-              views={["month", "year"]}
-              value={dateTime()}
-              onChange={(value: any) =>
-                states.date?.set(value.toSeconds() * 1000)
-              }
-              renderInput={(params) => <TextField {...params} />}
-            />
+            <>
+              <DesktopDatePicker
+                disabled={loading}
+                disableFuture={true}
+                label="Fatura Tarihi"
+                inputFormat="MM/yyyy"
+                views={["month", "year"]}
+                value={dateTime()}
+                onChange={(value: any) =>
+                  states.date?.set(value.toSeconds() * 1000)
+                }
+                renderInput={(params) => <TextField {...params} />}
+              />
+              <TextField
+                disabled={loading}
+                label="Fatura Tutarı"
+                value={states.total?.value}
+                fullWidth
+                type="number"
+                inputProps={{
+                  max: 1e5,
+                  min: 0,
+                }}
+                sx={{
+                  mt: "1rem",
+                }}
+                onChange={({ target: { max, value } }: any) => {
+                  const total = Number(value);
+                  if (total > Number(max)) return;
+                  states.total?.set(total);
+                }}
+              />
+            </>
           )) ||
-          dateTime({ locale: "tr" })
+          `${dateTime({ locale: "tr" })} | ${total_formatter.format(
+            states.total?.value ?? 0
+          )}`
         }
       />
 

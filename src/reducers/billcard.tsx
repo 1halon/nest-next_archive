@@ -1,6 +1,7 @@
 import { createSlice, current } from "@reduxjs/toolkit";
 import type { Action } from ".";
 import type { Props } from "../components/BillCard";
+import BillCard from "../components/BillCard";
 
 export interface State {
   cards: Props[];
