@@ -60,7 +60,7 @@ export default async function handler(
   new IncomingForm({ maxFields: 7, maxFiles: 1 }).parse(
     req,
     async (err, fields, files) => {
-      if (err) res.status(400).json({ message: err });
+      if (err) res.status(400).json({ message: err.message });
 
       const data = normalize(fields),
         file = files.file as File;
@@ -104,6 +104,7 @@ export default async function handler(
         case "POST":
           if (!data?.receipt) {
             status = 400;
+            body = { message: "No receipt." };
             break;
           }
 

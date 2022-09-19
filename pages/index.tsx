@@ -12,14 +12,14 @@ import dynamic from "next/dynamic";
 import { alert as _alert, username } from "../src/reducers/user";
 import type { SelectorState } from "../src/reducers";
 
-const BillCard = dynamic(() => import("../src/components/BillCard"), {
-  ssr: false,
-  suspense: true,
-});
-
 const Home: NextPage = () => {
-  const { cards: _cards } = useSelector<SelectorState, SelectorState["billcard"]>((state) => state.billcard),
-    { alert } = useSelector((state: any) => state.user),
+  const { cards: _cards } = useSelector<
+      SelectorState,
+      SelectorState["billcard"]
+    >((state) => state.billcard),
+    { alert } = useSelector<SelectorState, SelectorState["user"]>(
+      (state) => state.user
+    ),
     dispatch = useDispatch();
 
   useEffect(() => {
@@ -30,6 +30,11 @@ const Home: NextPage = () => {
     dispatch(username(session_name));
     sessionStorage.setItem("name", session_name);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const BillCard = dynamic(() => import("../src/components/BillCard"), {
+    ssr: false,
+    suspense: true,
+  });
 
   return (
     <LocalizationProvider dateAdapter={AdapterLuxon} adapterLocale="tr">
@@ -43,13 +48,15 @@ const Home: NextPage = () => {
           padding: "2.5vh",
         }}
       >
-        {_cards.map((card, index) => (
-          <Grid item key={index} sx={{ height: "fit-content" }}>
-            <Suspense fallback={<BillCardSkeleton />}>
-              <BillCard {...card} />
-            </Suspense>
-          </Grid>
-        ))}
+        {_cards
+          .sort((a, b) => b.date - a.date)
+          .map((card, index) => (
+            <Grid item key={index} sx={{ height: "fit-content" }}>
+              <Suspense fallback={<BillCardSkeleton />}>
+                <BillCard {...card} />
+              </Suspense>
+            </Grid>
+          ))}
       </Grid>
       <Snackbar
         autoHideDuration={alert?.timeout ?? 5000}

@@ -33,12 +33,12 @@ import {
   ReceiptLongOutlined,
 } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
-import { Dispatch, useEffect, useState } from "react";
+import { Dispatch, Suspense, useEffect, useState } from "react";
 import { common } from "@mui/material/colors";
 import { DateTime } from "luxon";
 import { DesktopDatePicker } from "@mui/x-date-pickers";
 import { useDispatch, useSelector } from "react-redux";
-import { remove, update } from "../reducers/billcard";
+import { remove } from "../reducers/billcard";
 import { request } from "../../pages/_app";
 import { alert } from "../reducers/user";
 
@@ -51,6 +51,7 @@ export const types = [
   "KİRA",
   "SU",
   "TELEFON",
+  "DİĞER",
 ] as const;
 
 export type Types = typeof types[number];
@@ -86,7 +87,7 @@ const total_formatter = Intl.NumberFormat("tr-TR", {
   currency: "TRY",
   signDisplay: "never",
   style: "currency",
-});
+}).format;
 
 const BillCard = (_props: Partial<Props>) => {
   const { username } = useSelector((state: any) => state.user),
@@ -283,8 +284,8 @@ const BillCard = (_props: Partial<Props>) => {
               />
             </>
           )) ||
-          `${dateTime({ locale: "tr" })} | ${total_formatter.format(
-            states.total?.value ?? 0
+          `${dateTime({ locale: "tr" })} | ${total_formatter(
+            states.total?.value
           )}`
         }
       />
