@@ -1,0 +1,38 @@
+{
+    "compilerOptions": {
+        // "allowJs": true,
+        // "allowImportingTsExtensions": true,
+        "allowSyntheticDefaultImports": true,
+        "baseUrl": "./",
+        "declaration": true,
+        "downlevelIteration": true,
+        "composite": true,
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "forceConsistentCasingInFileNames": true,
+        // "forceConsistentCasingInFileNames": false,
+        "incremental": true,
+        // "jsx": "preserve",
+        "lib": ["ESNext"],
+        "module": "ESNext",
+        // "module": "CommonJS",
+        "moduleDetection": "force",
+        "moduleResolution": "Bundler",
+        // "noEmit": true,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitAny": false,
+        // "preserveWatchOutput": true,
+        "outDir": "./dist",
+        "removeComments": true,
+        "resolveJsonModule": true,
+        "skipLibCheck": true,
+        "sourceMap": true,
+        "strict": true,
+        "target": "ESNext",
+        // "target": "ES2021",
+        "types": [
+            "bun-types",
+            "jest"
+        ]
+    }
+}
