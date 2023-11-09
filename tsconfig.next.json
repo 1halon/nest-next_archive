@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "esModuleInterop": true,
+    "jsx": "preserve",
+    "isolatedModules": true,
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "noEmit": true,
+    "plugins": [],
+    "resolveJsonModule": true,
+    "strict": false
+  },
+  "extends": "./tsconfig.json",
+  "include": ["declaration.d.ts", "src/pages"]
+}
