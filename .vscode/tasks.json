@@ -1,0 +1,56 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "inputs": [
+        {
+            "default": ":w",
+            "description": "Watch Mode",
+            "id": "watch",
+            "options": ["", ":w"],
+            "type": "pickString"
+        }
+    ],
+    "presentation": {
+        "clear": true,
+        "echo": false,
+        "focus": false,
+        "panel": "dedicated",
+        "reveal": "always",
+        "showReuseMessage": false
+    },
+    "tasks": [
+        {
+            "dependsOn": [
+                "Build",
+                "Run",
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "label": "Initiate",
+            "runOptions": {
+                "runOn": "folderOpen"
+            }
+        },
+        {
+            "command": "bun bun:build${input:watch}",
+            "isBackground": true,
+            "label": "Build",
+            "presentation": {
+                "group": "bun"
+            },
+            "type": "shell",
+        },
+        {
+            "command": "bun bun:run${input:watch}",
+            "isBackground": true,
+            "label": "Run",
+            "presentation": {
+                "group": "bun"
+            },
+            "type": "shell",
+        },
+    ],
+    "version": "2.0.0",
+}
