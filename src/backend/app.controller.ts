@@ -1,0 +1,15 @@
+import { Controller, Get, Render } from '@nestjs/common';
+import { GetMode } from 'src/shared/';
+
+@Controller({
+  host: GetMode('src/backend/.env', process.env['NODE_ENV']).host,
+})
+export class AppController {
+  constructor() {}
+
+  @Get()
+  @Render('index')
+  index() {
+    return {};
+  }
+}
